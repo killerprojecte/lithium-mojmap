@@ -3,14 +3,14 @@ package me.jellysquid.mods.lithium.mixin.util.block_tracking;
 import me.jellysquid.mods.lithium.common.block.BlockStateFlagHolder;
 import me.jellysquid.mods.lithium.common.block.BlockStateFlags;
 import me.jellysquid.mods.lithium.common.block.TrackedBlockStatePredicate;
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.BlockState;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(AbstractBlock.AbstractBlockState.class)
+@Mixin(BlockBehaviour.BlockStateBase.class)
 public class AbstractBlockStateMixin implements BlockStateFlagHolder {
     private int flags;
 

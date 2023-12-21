@@ -4,9 +4,9 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import me.jellysquid.mods.lithium.common.util.collections.ChunkTicketSortedArraySet;
-import net.minecraft.server.world.ChunkTicket;
-import net.minecraft.server.world.ChunkTicketManager;
-import net.minecraft.util.collection.SortedArraySet;
+import net.minecraft.server.level.DistanceManager;
+import net.minecraft.server.level.Ticket;
+import net.minecraft.util.SortedArraySet;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -19,20 +19,20 @@ import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import java.util.Collections;
 import java.util.Iterator;
 
-@Mixin(ChunkTicketManager.class)
+@Mixin(DistanceManager.class)
 public abstract class ChunkTicketManagerMixin {
     @Shadow
     private long age;
 
     @Shadow
     @Final
-    Long2ObjectOpenHashMap<SortedArraySet<ChunkTicket<?>>> ticketsByPosition;
+    Long2ObjectOpenHashMap<SortedArraySet<Ticket<?>>> ticketsByPosition;
 
-    private final Long2ObjectOpenHashMap<SortedArraySet<ChunkTicket<?>>> positionWithExpiringTicket = new Long2ObjectOpenHashMap<>();
+    private final Long2ObjectOpenHashMap<SortedArraySet<Ticket<?>>> positionWithExpiringTicket = new Long2ObjectOpenHashMap<>();
 
-    private static boolean canNoneExpire(SortedArraySet<ChunkTicket<?>> tickets) {
+    private static boolean canNoneExpire(SortedArraySet<Ticket<?>> tickets) {
         if (!tickets.isEmpty()) {
-            for (ChunkTicket<?> ticket : tickets) {
+            for (Ticket<?> ticket : tickets) {
                 if (canExpire(ticket)) {
                     return false;
                 }
@@ -42,12 +42,12 @@ public abstract class ChunkTicketManagerMixin {
     }
 
     @Redirect(method = "method_14041", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/collection/SortedArraySet;create(I)Lnet/minecraft/util/collection/SortedArraySet;"))
-    private static SortedArraySet<ChunkTicket<?>> useLithiumSortedArraySet(int initialCapacity) {
+    private static SortedArraySet<Ticket<?>> useLithiumSortedArraySet(int initialCapacity) {
         return new ChunkTicketSortedArraySet<>(initialCapacity);
     }
 
-    private static boolean canExpire(ChunkTicket<?> ticket) {
-        return ticket.getType().getExpiryTicks() != 0;
+    private static boolean canExpire(Ticket<?> ticket) {
+        return ticket.getType().timeout() != 0;
     }
 
     /**
@@ -59,7 +59,7 @@ public abstract class ChunkTicketManagerMixin {
             at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ChunkTicket;setTickCreated(J)V"),
             locals = LocalCapture.CAPTURE_FAILHARD
     )
-    private void registerExpiringTicket(long position, ChunkTicket<?> ticket, CallbackInfo ci, SortedArraySet<ChunkTicket<?>> ticketsAtPos, int i, ChunkTicket<?> chunkTicket) {
+    private void registerExpiringTicket(long position, Ticket<?> ticket, CallbackInfo ci, SortedArraySet<Ticket<?>> ticketsAtPos, int i, Ticket<?> chunkTicket) {
         if (canExpire(ticket)) {
             this.positionWithExpiringTicket.put(position, ticketsAtPos);
         }
@@ -69,9 +69,9 @@ public abstract class ChunkTicketManagerMixin {
             method = "removeTicket(JLnet/minecraft/server/world/ChunkTicket;)V",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ChunkTicketManager$TicketDistanceLevelPropagator;updateLevel(JIZ)V")
     )
-    private void unregisterExpiringTicket(long pos, ChunkTicket<?> ticket, CallbackInfo ci) {
+    private void unregisterExpiringTicket(long pos, Ticket<?> ticket, CallbackInfo ci) {
         if (canExpire(ticket)) {
-            SortedArraySet<ChunkTicket<?>> ticketsAtPos = this.positionWithExpiringTicket.get(pos);
+            SortedArraySet<Ticket<?>> ticketsAtPos = this.positionWithExpiringTicket.get(pos);
             if (canNoneExpire(ticketsAtPos)) {
                 this.positionWithExpiringTicket.remove(pos);
             }
@@ -86,9 +86,9 @@ public abstract class ChunkTicketManagerMixin {
             ),
             locals = LocalCapture.CAPTURE_FAILHARD
     )
-    private void updateSetMinExpiryTime(long position, ChunkTicket<?> ticket, CallbackInfo ci, SortedArraySet<ChunkTicket<?>> sortedArraySet, int i) {
+    private void updateSetMinExpiryTime(long position, Ticket<?> ticket, CallbackInfo ci, SortedArraySet<Ticket<?>> sortedArraySet, int i) {
         if (canExpire(ticket) && sortedArraySet instanceof ChunkTicketSortedArraySet<?> chunkTickets) {
-            chunkTickets.addExpireTime(this.age + ticket.getType().getExpiryTicks());
+            chunkTickets.addExpireTime(this.age + ticket.getType().timeout());
         }
     }
 
@@ -100,7 +100,7 @@ public abstract class ChunkTicketManagerMixin {
                     ordinal = 0
             )
     )
-    private Long2ObjectOpenHashMap<SortedArraySet<ChunkTicket<?>>> getExpiringTicketsByPosition(ChunkTicketManager chunkTicketManager) {
+    private Long2ObjectOpenHashMap<SortedArraySet<Ticket<?>>> getExpiringTicketsByPosition(DistanceManager chunkTicketManager) {
         return this.positionWithExpiringTicket;
     }
 
@@ -110,7 +110,7 @@ public abstract class ChunkTicketManagerMixin {
                 target = "Lnet/minecraft/util/collection/SortedArraySet;isEmpty()Z"
             )
     )
-    private boolean retCanNoneExpire(SortedArraySet<ChunkTicket<?>> tickets) {
+    private boolean retCanNoneExpire(SortedArraySet<Ticket<?>> tickets) {
         return canNoneExpire(tickets);
     }
 
@@ -120,8 +120,8 @@ public abstract class ChunkTicketManagerMixin {
                     target = "Lnet/minecraft/util/collection/SortedArraySet;isEmpty()Z"
             )
     )
-    private void removeIfEmpty(CallbackInfo ci, ObjectIterator<?> objectIterator, Long2ObjectMap.Entry<SortedArraySet<ChunkTicket<?>>> entry) {
-        SortedArraySet<ChunkTicket<?>> ticketsAtPos = entry.getValue();
+    private void removeIfEmpty(CallbackInfo ci, ObjectIterator<?> objectIterator, Long2ObjectMap.Entry<SortedArraySet<Ticket<?>>> entry) {
+        SortedArraySet<Ticket<?>> ticketsAtPos = entry.getValue();
         if (ticketsAtPos.isEmpty()) {
             this.ticketsByPosition.remove(entry.getLongKey(), ticketsAtPos);
         }
@@ -133,7 +133,7 @@ public abstract class ChunkTicketManagerMixin {
                     target = "Lnet/minecraft/util/collection/SortedArraySet;iterator()Ljava/util/Iterator;"
             )
     )
-    private Iterator<ChunkTicket<?>> skipIfNotExpiringNow(SortedArraySet<ChunkTicket<?>> ticketsAtPos) {
+    private Iterator<Ticket<?>> skipIfNotExpiringNow(SortedArraySet<Ticket<?>> ticketsAtPos) {
         if (ticketsAtPos instanceof ChunkTicketSortedArraySet<?> optimizedSet && optimizedSet.getMinExpireTime() > this.age) {
             return Collections.emptyIterator();
         } else {

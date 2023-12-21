@@ -1,11 +1,11 @@
 package me.jellysquid.mods.lithium.mixin.entity.fast_retrieval;
 
-import net.minecraft.util.function.LazyIterationConsumer;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.world.entity.EntityLike;
-import net.minecraft.world.entity.EntityTrackingSection;
-import net.minecraft.world.entity.SectionedEntityCache;
+import net.minecraft.core.SectionPos;
+import net.minecraft.util.AbortableIterationConsumer;
+import net.minecraft.world.level.entity.EntityAccess;
+import net.minecraft.world.level.entity.EntitySection;
+import net.minecraft.world.level.entity.EntitySectionStorage;
+import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -14,11 +14,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
-@Mixin(SectionedEntityCache.class)
-public abstract class SectionedEntityCacheMixin<T extends EntityLike> {
+@Mixin(EntitySectionStorage.class)
+public abstract class SectionedEntityCacheMixin<T extends EntityAccess> {
     @Shadow
     @Nullable
-    public abstract EntityTrackingSection<T> findTrackingSection(long sectionPos);
+    public abstract EntitySection<T> findTrackingSection(long sectionPos);
 
     /**
      * @author 2No2Name
@@ -35,7 +35,7 @@ public abstract class SectionedEntityCacheMixin<T extends EntityLike> {
             locals = LocalCapture.CAPTURE_FAILHARD,
             cancellable = true
     )
-    public void forEachInBox(Box box, LazyIterationConsumer<EntityTrackingSection<T>> action, CallbackInfo ci, int i, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
+    public void forEachInBox(AABB box, AbortableIterationConsumer<EntitySection<T>> action, CallbackInfo ci, int i, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
         if (maxX >= minX + 4 || maxZ >= minZ + 4) {
             return; // Vanilla is likely more optimized when shooting entities with TNT cannons over huge distances.
             // Choosing a cutoff of 4 chunk size, as it becomes more likely that these entity sections do not exist when
@@ -66,28 +66,28 @@ public abstract class SectionedEntityCacheMixin<T extends EntityLike> {
         }
     }
 
-    private LazyIterationConsumer.NextIteration forEachInColumn(int x, int minY, int maxY, int z, LazyIterationConsumer<EntityTrackingSection<T>> action) {
-        LazyIterationConsumer.NextIteration ret = LazyIterationConsumer.NextIteration.CONTINUE;
+    private AbortableIterationConsumer.Continuation forEachInColumn(int x, int minY, int maxY, int z, AbortableIterationConsumer<EntitySection<T>> action) {
+        AbortableIterationConsumer.Continuation ret = AbortableIterationConsumer.Continuation.CONTINUE;
         //y from negative to positive, but y is treated as unsigned
         for (int y = Math.max(minY, 0); y <= maxY; y++) {
-            if ((ret = this.consumeSection(ChunkSectionPos.asLong(x, y, z), action)).shouldAbort()) {
+            if ((ret = this.consumeSection(SectionPos.asLong(x, y, z), action)).shouldAbort()) {
                 return ret;
             }
         }
         int bound = Math.min(-1, maxY);
         for (int y = minY; y <= bound; y++) {
-            if ((ret = this.consumeSection(ChunkSectionPos.asLong(x, y, z), action)).shouldAbort()) {
+            if ((ret = this.consumeSection(SectionPos.asLong(x, y, z), action)).shouldAbort()) {
                 return ret;
             }
         }
         return ret;
     }
 
-    private LazyIterationConsumer.NextIteration consumeSection(long pos, LazyIterationConsumer<EntityTrackingSection<T>> action) {
-        EntityTrackingSection<T> section = this.findTrackingSection(pos);
-        if (section != null && 0 != section.size() && section.getStatus().shouldTrack()) {
+    private AbortableIterationConsumer.Continuation consumeSection(long pos, AbortableIterationConsumer<EntitySection<T>> action) {
+        EntitySection<T> section = this.findTrackingSection(pos);
+        if (section != null && 0 != section.size() && section.getStatus().isAccessible()) {
             return action.accept(section);
         }
-        return LazyIterationConsumer.NextIteration.CONTINUE;
+        return AbortableIterationConsumer.Continuation.CONTINUE;
     }
 }

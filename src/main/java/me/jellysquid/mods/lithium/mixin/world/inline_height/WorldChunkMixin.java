@@ -1,48 +1,48 @@
 package me.jellysquid.mods.lithium.mixin.world.inline_height;
 
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.HeightLimitView;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelHeightAccessor;
+import net.minecraft.world.level.chunk.LevelChunk;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
-@Mixin(WorldChunk.class)
-public abstract class WorldChunkMixin implements HeightLimitView {
+@Mixin(LevelChunk.class)
+public abstract class WorldChunkMixin implements LevelHeightAccessor {
 
     @Shadow
     @Final
-    World world;
+    Level world;
 
     @Override
-    public int getTopY() {
-        return this.world.getTopY();
+    public int getMaxBuildHeight() {
+        return this.world.getMaxBuildHeight();
     }
 
     @Override
-    public int countVerticalSections() {
-        return this.world.countVerticalSections();
+    public int getSectionsCount() {
+        return this.world.getSectionsCount();
     }
 
     @Override
-    public int getBottomSectionCoord() {
-        return this.world.getBottomSectionCoord();
+    public int getMinSection() {
+        return this.world.getMinSection();
     }
 
     @Override
-    public int getTopSectionCoord() {
-        return this.world.getTopSectionCoord();
+    public int getMaxSection() {
+        return this.world.getMaxSection();
     }
 
     @Override
-    public boolean isOutOfHeightLimit(BlockPos pos) {
-        return this.world.isOutOfHeightLimit(pos);
+    public boolean isOutsideBuildHeight(BlockPos pos) {
+        return this.world.isOutsideBuildHeight(pos);
     }
 
     @Override
-    public boolean isOutOfHeightLimit(int y) {
-        return this.world.isOutOfHeightLimit(y);
+    public boolean isOutsideBuildHeight(int y) {
+        return this.world.isOutsideBuildHeight(y);
     }
 
     @Override
@@ -51,12 +51,12 @@ public abstract class WorldChunkMixin implements HeightLimitView {
     }
 
     @Override
-    public int sectionCoordToIndex(int coord) {
-        return this.world.sectionCoordToIndex(coord);
+    public int getSectionIndexFromSectionY(int coord) {
+        return this.world.getSectionIndexFromSectionY(coord);
     }
 
     @Override
-    public int sectionIndexToCoord(int index) {
-        return this.world.sectionIndexToCoord(index);
+    public int getSectionYFromSectionIndex(int index) {
+        return this.world.getSectionYFromSectionIndex(index);
     }
 }

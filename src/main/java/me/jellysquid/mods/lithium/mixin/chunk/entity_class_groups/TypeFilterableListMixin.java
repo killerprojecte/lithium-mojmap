@@ -4,8 +4,8 @@ import it.unimi.dsi.fastutil.objects.Reference2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.objects.ReferenceLinkedOpenHashSet;
 import me.jellysquid.mods.lithium.common.entity.EntityClassGroup;
 import me.jellysquid.mods.lithium.common.world.chunk.ClassGroupFilterableList;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.collection.TypeFilterableList;
+import net.minecraft.util.ClassInstanceMultiMap;
+import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -17,9 +17,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Patches {@link TypeFilterableList} to allow grouping entities by arbitrary groups of classes instead of one class only.
+ * Patches {@link ClassInstanceMultiMap} to allow grouping entities by arbitrary groups of classes instead of one class only.
  */
-@Mixin(TypeFilterableList.class)
+@Mixin(ClassInstanceMultiMap.class)
 public abstract class TypeFilterableListMixin<T> implements ClassGroupFilterableList<T> {
 
     @Shadow

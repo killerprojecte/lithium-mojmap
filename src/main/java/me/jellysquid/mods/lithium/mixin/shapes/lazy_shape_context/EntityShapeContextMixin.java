@@ -1,11 +1,5 @@
 package me.jellysquid.mods.lithium.mixin.shapes.lazy_shape_context;
 
-import net.minecraft.block.EntityShapeContext;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.fluid.FluidState;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -19,8 +13,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.function.Predicate;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.phys.shapes.EntityCollisionContext;
 
-@Mixin(EntityShapeContext.class)
+@Mixin(EntityCollisionContext.class)
 public class EntityShapeContextMixin {
     @Mutable
     @Shadow
@@ -76,7 +76,7 @@ public class EntityShapeContextMixin {
     )
     public void isHolding(Item item, CallbackInfoReturnable<Boolean> cir) {
         if (this.heldItem == null) {
-            this.heldItem = this.entity instanceof LivingEntity ? ((LivingEntity) this.entity).getMainHandStack() : ItemStack.EMPTY;
+            this.heldItem = this.entity instanceof LivingEntity ? ((LivingEntity) this.entity).getMainHandItem() : ItemStack.EMPTY;
         }
     }
 
@@ -87,7 +87,7 @@ public class EntityShapeContextMixin {
     public void canWalkOnFluid(FluidState state, FluidState fluidState, CallbackInfoReturnable<Boolean> cir) {
         if (this.walkOnFluidPredicate == null) {
             if (this.entity instanceof LivingEntity livingEntity) {
-                this.walkOnFluidPredicate = livingEntity::canWalkOnFluid;
+                this.walkOnFluidPredicate = livingEntity::canStandOnFluid;
             } else {
                 this.walkOnFluidPredicate = (liquid) -> false;
             }

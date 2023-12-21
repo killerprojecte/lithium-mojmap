@@ -1,11 +1,11 @@
 package me.jellysquid.mods.lithium.mixin.world.block_entity_ticking.support_cache;
 
 import me.jellysquid.mods.lithium.common.world.blockentity.SupportCache;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -32,8 +32,8 @@ public class DirectBlockEntityTickInvokerMixin<T extends BlockEntity> {
                     to = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/BlockEntityTicker;tick(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Lnet/minecraft/block/entity/BlockEntity;)V")
             )
     )
-    private BlockState getCachedState(WorldChunk chunk, BlockPos pos) {
-        return this.blockEntity.getCachedState();
+    private BlockState getCachedState(LevelChunk chunk, BlockPos pos) {
+        return this.blockEntity.getBlockState();
     }
 
     @Redirect(

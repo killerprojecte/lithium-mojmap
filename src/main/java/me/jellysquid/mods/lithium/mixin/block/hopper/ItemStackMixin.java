@@ -4,7 +4,7 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import me.jellysquid.mods.lithium.common.hopper.LithiumStackList;
 import me.jellysquid.mods.lithium.common.hopper.StorableItemStack;
 import me.jellysquid.mods.lithium.common.util.tuples.RefIntPair;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;

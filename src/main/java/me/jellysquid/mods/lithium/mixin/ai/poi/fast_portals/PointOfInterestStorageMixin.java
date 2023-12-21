@@ -3,24 +3,24 @@ package me.jellysquid.mods.lithium.mixin.ai.poi.fast_portals;
 import com.mojang.datafixers.DataFixer;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
-import net.minecraft.datafixer.DataFixTypes;
-import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.world.HeightLimitView;
-import net.minecraft.world.WorldView;
-import net.minecraft.world.chunk.ChunkStatus;
-import net.minecraft.world.poi.PointOfInterestSet;
-import net.minecraft.world.poi.PointOfInterestStorage;
-import net.minecraft.world.storage.SerializingRegionBasedStorage;
 import org.spongepowered.asm.mixin.*;
 
 import java.nio.file.Path;
 import java.util.Optional;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.SectionPos;
+import net.minecraft.util.datafix.DataFixTypes;
+import net.minecraft.world.entity.ai.village.poi.PoiManager;
+import net.minecraft.world.entity.ai.village.poi.PoiSection;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LevelHeightAccessor;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.world.level.chunk.storage.SectionStorage;
 
-@Mixin(PointOfInterestStorage.class)
-public abstract class PointOfInterestStorageMixin extends SerializingRegionBasedStorage<PointOfInterestSet> {
+@Mixin(PoiManager.class)
+public abstract class PointOfInterestStorageMixin extends SectionStorage<PoiSection> {
 
     @Shadow
     @Final
@@ -33,10 +33,10 @@ public abstract class PointOfInterestStorageMixin extends SerializingRegionBased
 
     public PointOfInterestStorageMixin(
             Path path, DataFixer dataFixer, boolean dsync,
-            DynamicRegistryManager registryManager, HeightLimitView world
+            RegistryAccess registryManager, LevelHeightAccessor world
     ) {
         super(
-                path, PointOfInterestSet::createCodec, PointOfInterestSet::new,
+                path, PoiSection::codec, PoiSection::new,
                 dataFixer, DataFixTypes.POI_CHUNK, dsync, registryManager, world
         );
     }
@@ -49,23 +49,23 @@ public abstract class PointOfInterestStorageMixin extends SerializingRegionBased
      * of single chunks only.
      */
     @Overwrite
-    public void preloadChunks(WorldView worldView, BlockPos pos, int radius) {
+    public void preloadChunks(LevelReader worldView, BlockPos pos, int radius) {
         if (this.preloadRadius != radius) {
             //Usually there is only one preload radius per PointOfInterestStorage. Just in case another mod adjusts it dynamically, we avoid
             //assuming its value.
             this.preloadedCenterChunks.clear();
             this.preloadRadius = radius;
         }
-        long chunkPos = ChunkPos.toLong(pos);
+        long chunkPos = ChunkPos.asLong(pos);
         if (this.preloadedCenterChunks.contains(chunkPos)) {
             return;
         }
-        int chunkX = ChunkSectionPos.getSectionCoord(pos.getX());
-        int chunkZ = ChunkSectionPos.getSectionCoord(pos.getZ());
+        int chunkX = SectionPos.blockToSectionCoord(pos.getX());
+        int chunkZ = SectionPos.blockToSectionCoord(pos.getZ());
 
         int chunkRadius = Math.floorDiv(radius, 16);
-        int maxHeight = this.world.getTopSectionCoord() - 1;
-        int minHeight = this.world.getBottomSectionCoord();
+        int maxHeight = this.levelHeightAccessor.getMaxSection() - 1;
+        int minHeight = this.levelHeightAccessor.getMinSection();
 
         for (int x = chunkX - chunkRadius, xMax = chunkX + chunkRadius; x <= xMax; x++) {
             for (int z = chunkZ - chunkRadius, zMax = chunkZ + chunkRadius; z <= zMax; z++) {
@@ -76,14 +76,14 @@ public abstract class PointOfInterestStorageMixin extends SerializingRegionBased
     }
 
     @Unique
-    private void lithium$preloadChunkIfAnySubChunkContainsPOI(WorldView worldView, int x, int z, int minSubChunk, int maxSubChunk) {
+    private void lithium$preloadChunkIfAnySubChunkContainsPOI(LevelReader worldView, int x, int z, int minSubChunk, int maxSubChunk) {
         ChunkPos chunkPos = new ChunkPos(x, z);
         long longChunkPos = chunkPos.toLong();
 
         if (this.preloadedChunks.contains(longChunkPos)) return;
 
         for (int y = minSubChunk; y <= maxSubChunk; y++) {
-            Optional<PointOfInterestSet> section = this.get(ChunkSectionPos.asLong(x, y, z));
+            Optional<PoiSection> section = this.getOrLoad(SectionPos.asLong(x, y, z));
             if (section.isPresent()) {
                 boolean result = section.get().isValid();
                 if (result) {

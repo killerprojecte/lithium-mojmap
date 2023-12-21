@@ -5,13 +5,12 @@ import me.jellysquid.mods.lithium.common.block.ListeningBlockStatePredicate;
 import me.jellysquid.mods.lithium.common.util.Pos;
 import me.jellysquid.mods.lithium.common.util.deduplication.LithiumInternerWrapper;
 import me.jellysquid.mods.lithium.common.util.tuples.WorldSectionBox;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkSection;
-import net.minecraft.world.chunk.ChunkStatus;
-
+import net.minecraft.core.SectionPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.phys.AABB;
 import java.util.ArrayList;
 import java.util.Objects;
 
@@ -24,7 +23,7 @@ public class SectionedBlockChangeTracker {
     private int timesRegistered;
     //Some sections may not exist / be unloaded. We have to be aware of those. //TODO Invalidation when sections / chunks unload (but the entity does not (?), not sure whether this is possible)
     boolean isListeningToAll = false;
-    private ArrayList<ChunkSectionPos> sectionsNotListeningTo = null;
+    private ArrayList<SectionPos> sectionsNotListeningTo = null;
     private ArrayList<BlockListeningSection> sectionsUnsubscribed = null;
 
     public SectionedBlockChangeTracker(WorldSectionBox trackedWorldSections, ListeningBlockStatePredicate blockGroup) {
@@ -34,11 +33,11 @@ public class SectionedBlockChangeTracker {
         this.maxChangeTime = 0;
     }
 
-    public boolean matchesMovedBox(Box box) {
+    public boolean matchesMovedBox(AABB box) {
         return this.trackedWorldSections.matchesRelevantBlocksBox(box);
     }
 
-    public static SectionedBlockChangeTracker registerAt(World world, Box entityBoundingBox, ListeningBlockStatePredicate blockGroup) {
+    public static SectionedBlockChangeTracker registerAt(Level world, AABB entityBoundingBox, ListeningBlockStatePredicate blockGroup) {
         WorldSectionBox worldSectionBox = WorldSectionBox.relevantExpandedBlocksBox(world, entityBoundingBox);
         SectionedBlockChangeTracker tracker = new SectionedBlockChangeTracker(worldSectionBox, blockGroup);
         //noinspection unchecked
@@ -49,7 +48,7 @@ public class SectionedBlockChangeTracker {
     }
 
     long getWorldTime() {
-        return this.trackedWorldSections.world().getTime();
+        return this.trackedWorldSections.world().getGameTime();
     }
 
     public void register() {
@@ -57,8 +56,8 @@ public class SectionedBlockChangeTracker {
             WorldSectionBox trackedSections = this.trackedWorldSections;
             for (int x = trackedSections.chunkX1(); x < trackedSections.chunkX2(); x++) {
                 for (int z = trackedSections.chunkZ1(); z < trackedSections.chunkZ2(); z++) {
-                    Chunk chunk = trackedSections.world().getChunk(x, z, ChunkStatus.FULL, false);
-                    ChunkSection[] sectionArray = chunk == null ? null : chunk.getSectionArray();
+                    ChunkAccess chunk = trackedSections.world().getChunk(x, z, ChunkStatus.FULL, false);
+                    LevelChunkSection[] sectionArray = chunk == null ? null : chunk.getSections();
                     for (int y = trackedSections.chunkY1(); y < trackedSections.chunkY2(); y++) {
                         if (Pos.SectionYCoord.getMinYSection(trackedSections.world()) > y || Pos.SectionYCoord.getMaxYSectionExclusive(trackedSections.world()) <= y) {
                             continue;
@@ -67,10 +66,10 @@ public class SectionedBlockChangeTracker {
                             if (this.sectionsNotListeningTo == null) {
                                 this.sectionsNotListeningTo = new ArrayList<>();
                             }
-                            this.sectionsNotListeningTo.add(ChunkSectionPos.from(x, y, z));
+                            this.sectionsNotListeningTo.add(SectionPos.of(x, y, z));
                             continue;
                         }
-                        ChunkSection section = sectionArray[Pos.SectionYIndex.fromSectionCoord(trackedSections.world(), y)];
+                        LevelChunkSection section = sectionArray[Pos.SectionYIndex.fromSectionCoord(trackedSections.world(), y)];
 
                         BlockListeningSection blockListeningSection = (BlockListeningSection) section;
                         blockListeningSection.addToCallback(this.blockGroup, this);
@@ -87,11 +86,11 @@ public class SectionedBlockChangeTracker {
             return;
         }
         WorldSectionBox trackedSections = this.trackedWorldSections;
-        World world = trackedSections.world();
+        Level world = trackedSections.world();
         for (int x = trackedSections.chunkX1(); x < trackedSections.chunkX2(); x++) {
             for (int z = trackedSections.chunkZ1(); z < trackedSections.chunkZ2(); z++) {
-                Chunk chunk = world.getChunk(x, z, ChunkStatus.FULL, false);
-                ChunkSection[] sectionArray = chunk == null ? null : chunk.getSectionArray();
+                ChunkAccess chunk = world.getChunk(x, z, ChunkStatus.FULL, false);
+                LevelChunkSection[] sectionArray = chunk == null ? null : chunk.getSections();
                 for (int y = trackedSections.chunkY1(); y < trackedSections.chunkY2(); y++) {
 
                     if (sectionArray == null) {
@@ -100,7 +99,7 @@ public class SectionedBlockChangeTracker {
                     if (Pos.SectionYCoord.getMinYSection(world) > y || Pos.SectionYCoord.getMaxYSectionExclusive(world) <= y) {
                         continue;
                     }
-                    ChunkSection section = sectionArray[Pos.SectionYIndex.fromSectionCoord(world, y)];
+                    LevelChunkSection section = sectionArray[Pos.SectionYIndex.fromSectionCoord(world, y)];
 
                     BlockListeningSection blockListeningSection = (BlockListeningSection) section;
                     blockListeningSection.removeFromCallback(this.blockGroup, this);
@@ -114,19 +113,19 @@ public class SectionedBlockChangeTracker {
 
     public void listenToAllSections() {
         boolean changed = false;
-        ArrayList<ChunkSectionPos> notListeningTo = this.sectionsNotListeningTo;
+        ArrayList<SectionPos> notListeningTo = this.sectionsNotListeningTo;
         if (notListeningTo != null) {
             for (int i = notListeningTo.size() - 1; i >= 0; i--) {
                 changed = true;
-                ChunkSectionPos chunkSectionPos = notListeningTo.get(i);
-                Chunk chunk = this.trackedWorldSections.world().getChunk(chunkSectionPos.getX(), chunkSectionPos.getZ(), ChunkStatus.FULL, false);
+                SectionPos chunkSectionPos = notListeningTo.get(i);
+                ChunkAccess chunk = this.trackedWorldSections.world().getChunk(chunkSectionPos.getX(), chunkSectionPos.getZ(), ChunkStatus.FULL, false);
                 if (chunk != null) {
                     notListeningTo.remove(i);
                 } else {
                     //Chunk not loaded, cannot listen to all sections.
                     return;
                 }
-                ChunkSection section = chunk.getSectionArray()[Pos.SectionYIndex.fromSectionCoord(this.trackedWorldSections.world(), chunkSectionPos.getY())];
+                LevelChunkSection section = chunk.getSections()[Pos.SectionYIndex.fromSectionCoord(this.trackedWorldSections.world(), chunkSectionPos.getY())];
                 BlockListeningSection blockListeningSection = (BlockListeningSection) section;
                 blockListeningSection.addToCallback(this.blockGroup, this);
             }

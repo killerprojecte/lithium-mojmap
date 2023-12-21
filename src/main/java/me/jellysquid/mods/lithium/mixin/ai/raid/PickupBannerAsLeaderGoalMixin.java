@@ -1,16 +1,16 @@
 package me.jellysquid.mods.lithium.mixin.ai.raid;
 
-import net.minecraft.entity.raid.RaiderEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.village.raid.Raid;
+import net.minecraft.world.entity.raid.Raid;
+import net.minecraft.world.entity.raid.Raider;
+import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin(RaiderEntity.PickupBannerAsLeaderGoal.class)
+@Mixin(Raider.ObtainRaidLeaderBannerGoal.class)
 public class PickupBannerAsLeaderGoalMixin {
     // The call to Raid#getOminousBanner() is very expensive, so cache it and re-use it during AI ticking
-    private static final ItemStack CACHED_OMINOUS_BANNER = Raid.getOminousBanner();
+    private static final ItemStack CACHED_OMINOUS_BANNER = Raid.getLeaderBannerInstance();
 
     @Redirect(
             method = "canStart()Z",

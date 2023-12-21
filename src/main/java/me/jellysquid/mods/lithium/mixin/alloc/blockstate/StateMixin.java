@@ -3,10 +3,10 @@ package me.jellysquid.mods.lithium.mixin.alloc.blockstate;
 import com.google.common.collect.Table;
 import me.jellysquid.mods.lithium.common.state.FastImmutableTable;
 import me.jellysquid.mods.lithium.common.state.StatePropertyTableCache;
-import net.minecraft.block.Block;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.state.State;
-import net.minecraft.state.property.Property;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.StateHolder;
+import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.level.material.Fluid;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Map;
 
-@Mixin(State.class)
+@Mixin(StateHolder.class)
 public class StateMixin<O, S> {
     @Shadow
     private Table<Property<?>, Comparable<?>, S> withTable;

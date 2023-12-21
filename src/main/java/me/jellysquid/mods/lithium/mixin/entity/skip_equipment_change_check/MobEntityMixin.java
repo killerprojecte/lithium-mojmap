@@ -1,22 +1,22 @@
 package me.jellysquid.mods.lithium.mixin.entity.skip_equipment_change_check;
 
 import me.jellysquid.mods.lithium.common.entity.EquipmentEntity;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(MobEntity.class)
+@Mixin(Mob.class)
 public class MobEntityMixin implements EquipmentEntity.EquipmentTrackingEntity, EquipmentEntity {
     @Inject(
             method = "readCustomDataFromNbt(Lnet/minecraft/nbt/NbtCompound;)V",
             at = @At("RETURN")
     )
-    private void trackEquipChange(NbtCompound nbt, CallbackInfo ci) {
+    private void trackEquipChange(CompoundTag nbt, CallbackInfo ci) {
         this.lithiumOnEquipmentChanged();
     }
 

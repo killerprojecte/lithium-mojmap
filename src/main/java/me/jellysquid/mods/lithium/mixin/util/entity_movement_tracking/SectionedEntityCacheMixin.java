@@ -3,12 +3,12 @@ package me.jellysquid.mods.lithium.mixin.util.entity_movement_tracking;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap;
 import me.jellysquid.mods.lithium.common.entity.movement_tracker.MovementTrackerCache;
 import me.jellysquid.mods.lithium.common.entity.movement_tracker.SectionedEntityMovementTracker;
-import net.minecraft.world.entity.EntityLike;
-import net.minecraft.world.entity.SectionedEntityCache;
+import net.minecraft.world.level.entity.EntityAccess;
+import net.minecraft.world.level.entity.EntitySectionStorage;
 import org.spongepowered.asm.mixin.Mixin;
 
-@Mixin(SectionedEntityCache.class)
-public class SectionedEntityCacheMixin<T extends EntityLike> implements MovementTrackerCache {
+@Mixin(EntitySectionStorage.class)
+public class SectionedEntityCacheMixin<T extends EntityAccess> implements MovementTrackerCache {
 
     private final Object2ReferenceOpenHashMap<SectionedEntityMovementTracker<?, ?>, SectionedEntityMovementTracker<?, ?>> sectionEntityMovementTrackers = new Object2ReferenceOpenHashMap<>();
 

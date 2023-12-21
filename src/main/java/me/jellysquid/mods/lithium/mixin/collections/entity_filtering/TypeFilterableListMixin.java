@@ -1,17 +1,17 @@
 package me.jellysquid.mods.lithium.mixin.collections.entity_filtering;
 
-import net.minecraft.util.collection.TypeFilterableList;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 
 import java.util.*;
+import net.minecraft.util.ClassInstanceMultiMap;
 
 /**
- * Patches {@link TypeFilterableList} to improve performance when entities are being queried in the world.
+ * Patches {@link ClassInstanceMultiMap} to improve performance when entities are being queried in the world.
  */
-@Mixin(TypeFilterableList.class)
+@Mixin(ClassInstanceMultiMap.class)
 public class TypeFilterableListMixin<T> {
 
     @Shadow

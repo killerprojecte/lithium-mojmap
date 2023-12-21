@@ -1,24 +1,24 @@
 package me.jellysquid.mods.lithium.common.block;
 
 import it.unimi.dsi.fastutil.objects.Reference2BooleanArrayMap;
+import it.unimi.dsi.fastutil.objects.Reference2BooleanMap.Entry;
 import me.jellysquid.mods.lithium.common.ai.pathing.BlockStatePathingCache;
 import me.jellysquid.mods.lithium.common.ai.pathing.PathNodeCache;
 import me.jellysquid.mods.lithium.common.entity.FluidCachingEntity;
 import me.jellysquid.mods.lithium.common.reflection.ReflectionUtil;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.ai.pathing.PathNodeType;
-import net.minecraft.registry.tag.FluidTags;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.ChunkSection;
-
+import net.minecraft.core.BlockPos;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.pathfinder.BlockPathTypes;
 import java.util.ArrayList;
 
 public class BlockStateFlags {
-    public static final boolean ENABLED = BlockCountingSection.class.isAssignableFrom(ChunkSection.class);
+    public static final boolean ENABLED = BlockCountingSection.class.isAssignableFrom(LevelChunkSection.class);
 
     public static final int NUM_LISTENING_FLAGS;
     public static final ListeningBlockStatePredicate[] LISTENING_FLAGS;
@@ -70,7 +70,7 @@ public class BlockStateFlags {
         OVERSIZED_SHAPE = new TrackedBlockStatePredicate(countingFlags.size()) {
             @Override
             public boolean test(BlockState operand) {
-                return operand.exceedsCube();
+                return operand.hasLargeCollisionShape();
             }
         };
         countingFlags.add(OVERSIZED_SHAPE);
@@ -79,7 +79,7 @@ public class BlockStateFlags {
             WATER = new TrackedBlockStatePredicate(countingFlags.size()) {
                 @Override
                 public boolean test(BlockState operand) {
-                    return operand.getFluidState().getFluid().isIn(FluidTags.WATER);
+                    return operand.getFluidState().getType().is(FluidTags.WATER);
                 }
             };
             countingFlags.add(WATER);
@@ -87,7 +87,7 @@ public class BlockStateFlags {
             LAVA = new TrackedBlockStatePredicate(countingFlags.size()) {
                 @Override
                 public boolean test(BlockState operand) {
-                    return operand.getFluidState().getFluid().isIn(FluidTags.LAVA);
+                    return operand.getFluidState().getType().is(FluidTags.LAVA);
                 }
             };
             countingFlags.add(LAVA);
@@ -96,11 +96,11 @@ public class BlockStateFlags {
             LAVA = null;
         }
 
-        if (BlockStatePathingCache.class.isAssignableFrom(AbstractBlock.AbstractBlockState.class)) {
+        if (BlockStatePathingCache.class.isAssignableFrom(BlockBehaviour.BlockStateBase.class)) {
             PATH_NOT_OPEN = new TrackedBlockStatePredicate(countingFlags.size()) {
                 @Override
                 public boolean test(BlockState operand) {
-                    return PathNodeCache.getNeighborPathNodeType(operand) != PathNodeType.OPEN;
+                    return PathNodeCache.getNeighborPathNodeType(operand) != BlockPathTypes.OPEN;
                 }
             };
             countingFlags.add(PATH_NOT_OPEN);
@@ -120,7 +120,7 @@ public class BlockStateFlags {
             private final String remapped_onEntityCollision = FabricLoader.getInstance().getMappingResolver().mapMethodName("intermediary", "net.minecraft.class_4970", "method_9548", "(Lnet/minecraft/class_2680;Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_1297;)V");
             @Override
             public boolean test(BlockState operand) {
-                return ReflectionUtil.hasMethodOverride(operand.getBlock().getClass(), AbstractBlock.class, true, this.remapped_onEntityCollision, BlockState.class, World.class, BlockPos.class, Entity.class);
+                return ReflectionUtil.hasMethodOverride(operand.getBlock().getClass(), BlockBehaviour.class, true, this.remapped_onEntityCollision, BlockState.class, Level.class, BlockPos.class, Entity.class);
             }
         };
         flags.add(ENTITY_TOUCHABLE);

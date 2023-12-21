@@ -3,11 +3,10 @@ package me.jellysquid.mods.lithium.common.entity;
 import it.unimi.dsi.fastutil.objects.Reference2ByteOpenHashMap;
 import me.jellysquid.mods.lithium.common.reflection.ReflectionUtil;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.boss.dragon.EnderDragonEntity;
-import net.minecraft.entity.mob.ShulkerEntity;
-import net.minecraft.entity.vehicle.MinecartEntity;
-
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.monster.Shulker;
+import net.minecraft.world.entity.vehicle.Minecart;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
@@ -29,10 +28,10 @@ public class EntityClassGroup {
                 (Class<?> entityClass) -> ReflectionUtil.hasMethodOverride(entityClass, Entity.class, true, remapped_collidesWith, Entity.class));
 
         //sanity check: in case intermediary mappings changed, we fail
-        if ((!MINECART_BOAT_LIKE_COLLISION.contains(MinecartEntity.class))) {
+        if ((!MINECART_BOAT_LIKE_COLLISION.contains(Minecart.class))) {
             throw new AssertionError();
         }
-        if ((MINECART_BOAT_LIKE_COLLISION.contains(ShulkerEntity.class))) {
+        if ((MINECART_BOAT_LIKE_COLLISION.contains(Shulker.class))) {
             //should not throw an Error here, because another mod *could* add the method to ShulkerEntity. Wwarning when this sanity check fails.
             Logger.getLogger("Lithium EntityClassGroup").warning("Either Lithium EntityClassGroup is broken or something else gave Shulkers the minecart-like collision behavior.");
         }
@@ -90,7 +89,7 @@ public class EntityClassGroup {
             BOAT_SHULKER_LIKE_COLLISION = new NoDragonClassGroup(
                     (Class<?> entityClass) -> ReflectionUtil.hasMethodOverride(entityClass, Entity.class, true, remapped_isCollidable));
 
-            if ((!BOAT_SHULKER_LIKE_COLLISION.contains(ShulkerEntity.class))) {
+            if ((!BOAT_SHULKER_LIKE_COLLISION.contains(Shulker.class))) {
                 throw new AssertionError();
             }
             BOAT_SHULKER_LIKE_COLLISION.clear();
@@ -98,7 +97,7 @@ public class EntityClassGroup {
 
         public NoDragonClassGroup(Predicate<Class<?>> classFitEvaluator) {
             super(classFitEvaluator);
-            if (classFitEvaluator.test(EnderDragonEntity.class)) {
+            if (classFitEvaluator.test(EnderDragon.class)) {
                 throw new IllegalArgumentException("EntityClassGroup.NoDragonClassGroup cannot be initialized: Must exclude EnderDragonEntity!");
             }
         }

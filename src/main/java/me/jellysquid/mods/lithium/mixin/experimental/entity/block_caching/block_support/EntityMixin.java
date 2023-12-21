@@ -2,8 +2,8 @@ package me.jellysquid.mods.lithium.mixin.experimental.entity.block_caching.block
 
 import me.jellysquid.mods.lithium.common.entity.block_tracking.BlockCache;
 import me.jellysquid.mods.lithium.common.entity.block_tracking.BlockCacheProvider;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,7 +18,7 @@ public abstract class EntityMixin implements BlockCacheProvider {
                     target = "Lnet/minecraft/entity/Entity;getBoundingBox()Lnet/minecraft/util/math/Box;"
             )
     )
-    private void cancelIfSkippable(boolean onGround, Vec3d movement, CallbackInfo ci) {
+    private void cancelIfSkippable(boolean onGround, Vec3 movement, CallbackInfo ci) {
         if (movement == null || (movement.x == 0 && movement.z == 0)) {
             //noinspection ConstantConditions
             BlockCache bc = this.getUpdatedBlockCache((Entity) (Object) this);
@@ -54,7 +54,7 @@ public abstract class EntityMixin implements BlockCacheProvider {
             method = "updateSupportingBlockPos",
             at = @At(value = "INVOKE", target = "Ljava/util/Optional;empty()Ljava/util/Optional;", remap = false)
     )
-    private void uncacheSupportingBlockSearch1(boolean onGround, Vec3d movement, CallbackInfo ci) {
+    private void uncacheSupportingBlockSearch1(boolean onGround, Vec3 movement, CallbackInfo ci) {
         BlockCache bc = this.getBlockCache();
         if (bc.isTracking()) {
             bc.setCanSkipSupportingBlockSearch(false);

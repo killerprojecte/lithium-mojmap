@@ -2,15 +2,15 @@ package me.jellysquid.mods.lithium.mixin.world.block_entity_ticking.sleeping.cam
 
 import me.jellysquid.mods.lithium.common.block.entity.SleepingBlockEntity;
 import me.jellysquid.mods.lithium.mixin.world.block_entity_ticking.sleeping.WrappedBlockEntityTickInvokerAccessor;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.block.entity.CampfireBlockEntity;
-import net.minecraft.entity.Entity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.chunk.BlockEntityTickInvoker;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.entity.CampfireBlockEntity;
+import net.minecraft.world.level.block.entity.TickingBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -21,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class CampfireBlockEntityMixin extends BlockEntity implements SleepingBlockEntity {
 
     private WrappedBlockEntityTickInvokerAccessor tickWrapper = null;
-    private BlockEntityTickInvoker sleepingTicker = null;
+    private TickingBlockEntity sleepingTicker = null;
 
     public CampfireBlockEntityMixin(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -39,12 +39,12 @@ public class CampfireBlockEntityMixin extends BlockEntity implements SleepingBlo
     }
 
     @Override
-    public BlockEntityTickInvoker getSleepingTicker() {
+    public TickingBlockEntity getSleepingTicker() {
         return sleepingTicker;
     }
 
     @Override
-    public void setSleepingTicker(BlockEntityTickInvoker sleepingTicker) {
+    public void setSleepingTicker(TickingBlockEntity sleepingTicker) {
         this.sleepingTicker = sleepingTicker;
     }
 
@@ -61,7 +61,7 @@ public class CampfireBlockEntityMixin extends BlockEntity implements SleepingBlo
             method = "readNbt",
             at = @At(value = "RETURN")
     )
-    private void wakeUpOnReadNbt(NbtCompound nbt, CallbackInfo ci) {
+    private void wakeUpOnReadNbt(CompoundTag nbt, CallbackInfo ci) {
         this.wakeUpNow();
     }
 }

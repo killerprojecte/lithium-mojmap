@@ -1,8 +1,8 @@
 package me.jellysquid.mods.lithium.mixin.entity.collisions.unpushable_cramming;
 
 import me.jellysquid.mods.lithium.common.entity.pushable.BlockCachingEntity;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.Entity;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;

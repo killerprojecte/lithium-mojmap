@@ -1,11 +1,11 @@
 package me.jellysquid.mods.lithium.mixin.shapes.specialized_shapes;
 
 import it.unimi.dsi.fastutil.doubles.DoubleList;
-import net.minecraft.util.math.AxisCycleDirection;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.shape.VoxelSet;
-import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.core.AxisCycle;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.shapes.DiscreteVoxelShape;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -21,7 +21,7 @@ public abstract class VoxelShapeMixin {
 
     @Shadow
     @Final
-    public VoxelSet voxels;
+    public DiscreteVoxelShape voxels;
 
     @Shadow
     public abstract boolean isEmpty();
@@ -37,7 +37,7 @@ public abstract class VoxelShapeMixin {
      * @author JellySquid
      */
     @Overwrite
-    public double calculateMaxDistance(AxisCycleDirection cycleDirection, Box box, double maxDist) {
+    public double calculateMaxDistance(AxisCycle cycleDirection, AABB box, double maxDist) {
         if (this.isEmpty()) {
             return maxDist;
         }
@@ -46,7 +46,7 @@ public abstract class VoxelShapeMixin {
             return 0.0D;
         }
 
-        AxisCycleDirection cycle = cycleDirection.opposite();
+        AxisCycle cycle = cycleDirection.inverse();
 
         Direction.Axis axisX = cycle.cycle(Direction.Axis.X);
         Direction.Axis axisY = cycle.cycle(Direction.Axis.Y);
@@ -62,21 +62,21 @@ public abstract class VoxelShapeMixin {
         double dist;
 
         if (maxDist > 0.0D) {
-            double max = box.getMax(axisX);
+            double max = box.max(axisX);
             int maxIdx = this.getCoordIndex(axisX, max - POSITIVE_EPSILON);
 
             int maxX = this.voxels.getSize(axisX);
 
             for (x = maxIdx + 1; x < maxX; ++x) {
-                minY = minY == Integer.MIN_VALUE ? Math.max(0, this.getCoordIndex(axisY, box.getMin(axisY) + POSITIVE_EPSILON)) : minY;
-                maxY = maxY == Integer.MIN_VALUE ? Math.min(this.voxels.getSize(axisY), this.getCoordIndex(axisY, box.getMax(axisY) - POSITIVE_EPSILON) + 1) : maxY;
+                minY = minY == Integer.MIN_VALUE ? Math.max(0, this.getCoordIndex(axisY, box.min(axisY) + POSITIVE_EPSILON)) : minY;
+                maxY = maxY == Integer.MIN_VALUE ? Math.min(this.voxels.getSize(axisY), this.getCoordIndex(axisY, box.max(axisY) - POSITIVE_EPSILON) + 1) : maxY;
 
                 for (y = minY; y < maxY; ++y) {
-                    minZ = minZ == Integer.MIN_VALUE ? Math.max(0, this.getCoordIndex(axisZ, box.getMin(axisZ) + POSITIVE_EPSILON)) : minZ;
-                    maxZ = maxZ == Integer.MIN_VALUE ? Math.min(this.voxels.getSize(axisZ), this.getCoordIndex(axisZ, box.getMax(axisZ) - POSITIVE_EPSILON) + 1) : maxZ;
+                    minZ = minZ == Integer.MIN_VALUE ? Math.max(0, this.getCoordIndex(axisZ, box.min(axisZ) + POSITIVE_EPSILON)) : minZ;
+                    maxZ = maxZ == Integer.MIN_VALUE ? Math.min(this.voxels.getSize(axisZ), this.getCoordIndex(axisZ, box.max(axisZ) - POSITIVE_EPSILON) + 1) : maxZ;
 
                     for (z = minZ; z < maxZ; ++z) {
-                        if (this.voxels.inBoundsAndContains(cycle, x, y, z)) {
+                        if (this.voxels.isFullWide(cycle, x, y, z)) {
                             dist = this.getPointPosition(axisX, x) - max;
 
                             if (dist >= NEGATIVE_EPSILON) {
@@ -89,19 +89,19 @@ public abstract class VoxelShapeMixin {
                 }
             }
         } else if (maxDist < 0.0D) {
-            double min = box.getMin(axisX);
+            double min = box.min(axisX);
             int minIdx = this.getCoordIndex(axisX, min + POSITIVE_EPSILON);
 
             for (x = minIdx - 1; x >= 0; --x) {
-                minY = minY == Integer.MIN_VALUE ? Math.max(0, this.getCoordIndex(axisY, box.getMin(axisY) + POSITIVE_EPSILON)) : minY;
-                maxY = maxY == Integer.MIN_VALUE ? Math.min(this.voxels.getSize(axisY), this.getCoordIndex(axisY, box.getMax(axisY) - POSITIVE_EPSILON) + 1) : maxY;
+                minY = minY == Integer.MIN_VALUE ? Math.max(0, this.getCoordIndex(axisY, box.min(axisY) + POSITIVE_EPSILON)) : minY;
+                maxY = maxY == Integer.MIN_VALUE ? Math.min(this.voxels.getSize(axisY), this.getCoordIndex(axisY, box.max(axisY) - POSITIVE_EPSILON) + 1) : maxY;
 
                 for (y = minY; y < maxY; ++y) {
-                    minZ = minZ == Integer.MIN_VALUE ? Math.max(0, this.getCoordIndex(axisZ, box.getMin(axisZ) + POSITIVE_EPSILON)) : minZ;
-                    maxZ = maxZ == Integer.MIN_VALUE ? Math.min(this.voxels.getSize(axisZ), this.getCoordIndex(axisZ, box.getMax(axisZ) - POSITIVE_EPSILON) + 1) : maxZ;
+                    minZ = minZ == Integer.MIN_VALUE ? Math.max(0, this.getCoordIndex(axisZ, box.min(axisZ) + POSITIVE_EPSILON)) : minZ;
+                    maxZ = maxZ == Integer.MIN_VALUE ? Math.min(this.voxels.getSize(axisZ), this.getCoordIndex(axisZ, box.max(axisZ) - POSITIVE_EPSILON) + 1) : maxZ;
 
                     for (z = minZ; z < maxZ; ++z) {
-                        if (this.voxels.inBoundsAndContains(cycle, x, y, z)) {
+                        if (this.voxels.isFullWide(cycle, x, y, z)) {
                             dist = this.getPointPosition(axisX, x + 1) - min;
 
                             if (dist <= POSITIVE_EPSILON) {

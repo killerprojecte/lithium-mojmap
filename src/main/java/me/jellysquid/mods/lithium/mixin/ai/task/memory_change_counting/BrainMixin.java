@@ -1,7 +1,7 @@
 package me.jellysquid.mods.lithium.mixin.ai.task.memory_change_counting;
 
 import me.jellysquid.mods.lithium.common.ai.MemoryModificationCounter;
-import net.minecraft.entity.ai.brain.Brain;
+import net.minecraft.world.entity.ai.Brain;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

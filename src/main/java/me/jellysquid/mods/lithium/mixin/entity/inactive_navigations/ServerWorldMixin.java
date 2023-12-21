@@ -3,25 +3,25 @@ package me.jellysquid.mods.lithium.mixin.entity.inactive_navigations;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import me.jellysquid.mods.lithium.common.entity.NavigatingEntity;
 import me.jellysquid.mods.lithium.common.world.ServerWorldExtended;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.ai.pathing.EntityNavigation;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.WorldGenerationProgressListener;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.random.RandomSequencesState;
-import net.minecraft.util.profiler.Profiler;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.world.MutableWorldProperties;
-import net.minecraft.world.World;
-import net.minecraft.world.dimension.DimensionOptions;
-import net.minecraft.world.dimension.DimensionType;
-import net.minecraft.world.level.ServerWorldProperties;
-import net.minecraft.world.level.storage.LevelStorage;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.progress.ChunkProgressListener;
+import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.world.RandomSequences;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.dimension.LevelStem;
+import net.minecraft.world.level.storage.LevelStorageSource;
+import net.minecraft.world.level.storage.ServerLevelData;
+import net.minecraft.world.level.storage.WritableLevelData;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
@@ -54,16 +54,16 @@ import java.util.function.Supplier;
  * As the number of block changes is generally way higher than the number of mobs pathfinding, the update code would
  * need to be triggered by the mobs pathfinding.
  */
-@Mixin(ServerWorld.class)
-public abstract class ServerWorldMixin extends World implements ServerWorldExtended {
+@Mixin(ServerLevel.class)
+public abstract class ServerWorldMixin extends Level implements ServerWorldExtended {
     @Mutable
     @Shadow
     @Final
-    Set<MobEntity> loadedMobs;
+    Set<Mob> loadedMobs;
 
-    private ReferenceOpenHashSet<EntityNavigation> activeNavigations;
+    private ReferenceOpenHashSet<PathNavigation> activeNavigations;
 
-    protected ServerWorldMixin(MutableWorldProperties properties, RegistryKey<World> registryRef, DynamicRegistryManager registryManager, RegistryEntry<DimensionType> dimensionEntry, Supplier<Profiler> profiler, boolean isClient, boolean debugWorld, long biomeAccess, int maxChainedNeighborUpdates) {
+    protected ServerWorldMixin(WritableLevelData properties, ResourceKey<Level> registryRef, RegistryAccess registryManager, Holder<DimensionType> dimensionEntry, Supplier<ProfilerFiller> profiler, boolean isClient, boolean debugWorld, long biomeAccess, int maxChainedNeighborUpdates) {
         super(properties, registryRef, registryManager, dimensionEntry, profiler, isClient, debugWorld, biomeAccess, maxChainedNeighborUpdates);
     }
 
@@ -80,24 +80,24 @@ public abstract class ServerWorldMixin extends World implements ServerWorldExten
                     target = "Ljava/util/Set;iterator()Ljava/util/Iterator;"
             )
     )
-    private Iterator<MobEntity> getActiveListeners(Set<MobEntity> set) {
+    private Iterator<Mob> getActiveListeners(Set<Mob> set) {
         return Collections.emptyIterator();
     }
 
     @SuppressWarnings("rawtypes")
     @Inject(method = "<init>", at = @At("TAIL"))
-    private void init(MinecraftServer server, Executor workerExecutor, LevelStorage.Session session, ServerWorldProperties properties, RegistryKey worldKey, DimensionOptions dimensionOptions, WorldGenerationProgressListener worldGenerationProgressListener, boolean debugWorld, long seed, List spawners, boolean shouldTickTime, RandomSequencesState randomSequencesState, CallbackInfo ci) {
+    private void init(MinecraftServer server, Executor workerExecutor, LevelStorageSource.LevelStorageAccess session, ServerLevelData properties, ResourceKey worldKey, LevelStem dimensionOptions, ChunkProgressListener worldGenerationProgressListener, boolean debugWorld, long seed, List spawners, boolean shouldTickTime, RandomSequences randomSequencesState, CallbackInfo ci) {
         this.loadedMobs = new ReferenceOpenHashSet<>(this.loadedMobs);
         this.activeNavigations = new ReferenceOpenHashSet<>();
     }
 
     @Override
-    public void setNavigationActive(MobEntity mobEntity) {
+    public void setNavigationActive(Mob mobEntity) {
         this.activeNavigations.add(((NavigatingEntity) mobEntity).getRegisteredNavigation());
     }
 
     @Override
-    public void setNavigationInactive(MobEntity mobEntity) {
+    public void setNavigationInactive(Mob mobEntity) {
         this.activeNavigations.remove(((NavigatingEntity) mobEntity).getRegisteredNavigation());
     }
 
@@ -109,9 +109,9 @@ public abstract class ServerWorldMixin extends World implements ServerWorldExten
             ),
             locals = LocalCapture.CAPTURE_FAILHARD
     )
-    private void updateActiveListeners(BlockPos pos, BlockState oldState, BlockState newState, int arg3, CallbackInfo ci, VoxelShape string, VoxelShape voxelShape, List<EntityNavigation> list) {
-        for (EntityNavigation entityNavigation : this.activeNavigations) {
-            if (entityNavigation.shouldRecalculatePath(pos)) {
+    private void updateActiveListeners(BlockPos pos, BlockState oldState, BlockState newState, int arg3, CallbackInfo ci, VoxelShape string, VoxelShape voxelShape, List<PathNavigation> list) {
+        for (PathNavigation entityNavigation : this.activeNavigations) {
+            if (entityNavigation.shouldRecomputePath(pos)) {
                 list.add(entityNavigation);
             }
         }
@@ -125,12 +125,12 @@ public abstract class ServerWorldMixin extends World implements ServerWorldExten
     @SuppressWarnings("unused")
     public boolean isConsistent() {
         int i = 0;
-        for (MobEntity mobEntity : this.loadedMobs) {
-            EntityNavigation entityNavigation = mobEntity.getNavigation();
-            if ((entityNavigation.getCurrentPath() != null && ((NavigatingEntity) mobEntity).isRegisteredToWorld()) != this.activeNavigations.contains(entityNavigation)) {
+        for (Mob mobEntity : this.loadedMobs) {
+            PathNavigation entityNavigation = mobEntity.getNavigation();
+            if ((entityNavigation.getPath() != null && ((NavigatingEntity) mobEntity).isRegisteredToWorld()) != this.activeNavigations.contains(entityNavigation)) {
                 return false;
             }
-            if (entityNavigation.getCurrentPath() != null) {
+            if (entityNavigation.getPath() != null) {
                 i++;
             }
         }

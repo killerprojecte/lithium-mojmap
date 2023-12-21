@@ -3,13 +3,13 @@ package me.jellysquid.mods.lithium.mixin.ai.nearby_entity_tracking;
 import me.jellysquid.mods.lithium.common.entity.nearby_tracker.NearbyEntityListenerMulti;
 import me.jellysquid.mods.lithium.common.entity.nearby_tracker.NearbyEntityListenerProvider;
 import me.jellysquid.mods.lithium.common.util.tuples.Range6Int;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.world.ServerEntityManager;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.world.entity.EntityLike;
-import net.minecraft.world.entity.EntityTrackingSection;
-import net.minecraft.world.entity.EntityTrackingStatus;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.entity.EntityAccess;
+import net.minecraft.world.level.entity.EntitySection;
+import net.minecraft.world.level.entity.PersistentEntitySectionManager;
+import net.minecraft.world.level.entity.Visibility;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 @Mixin(targets = "net/minecraft/server/world/ServerEntityManager$Listener")
-public class ServerEntityManagerListenerMixin<T extends EntityLike> {
+public class ServerEntityManagerListenerMixin<T extends EntityAccess> {
     @Shadow
     @Final
     private T entity;
@@ -27,7 +27,7 @@ public class ServerEntityManagerListenerMixin<T extends EntityLike> {
     @Final
     @SuppressWarnings("ShadowTarget")
     @Shadow
-    ServerEntityManager<T> manager;
+    PersistentEntitySectionManager<T> manager;
 
     @Shadow
     private long sectionPos;
@@ -41,7 +41,7 @@ public class ServerEntityManagerListenerMixin<T extends EntityLike> {
             ),
             locals = LocalCapture.CAPTURE_FAILHARD
     )
-    private void onUpdateEntityPosition(CallbackInfo ci, BlockPos blockPos, long newPos, EntityTrackingStatus entityTrackingStatus, EntityTrackingSection<T> entityTrackingSection) {
+    private void onUpdateEntityPosition(CallbackInfo ci, BlockPos blockPos, long newPos, Visibility entityTrackingStatus, EntitySection<T> entityTrackingSection) {
         NearbyEntityListenerMulti listener = ((NearbyEntityListenerProvider) this.entity).getListener();
         if (listener != null)
         {
@@ -49,8 +49,8 @@ public class ServerEntityManagerListenerMixin<T extends EntityLike> {
             //noinspection unchecked
             listener.updateChunkRegistrations(
                     ((ServerEntityManagerAccessor<T>) this.manager).getCache(),
-                    ChunkSectionPos.from(this.sectionPos), chunkRange,
-                    ChunkSectionPos.from(newPos), chunkRange
+                    SectionPos.of(this.sectionPos), chunkRange,
+                    SectionPos.of(newPos), chunkRange
             );
         }
     }
@@ -67,7 +67,7 @@ public class ServerEntityManagerListenerMixin<T extends EntityLike> {
             //noinspection unchecked
             listener.removeFromAllChunksInRange(
                     ((ServerEntityManagerAccessor<T>) this.manager).getCache(),
-                    ChunkSectionPos.from(this.sectionPos)
+                    SectionPos.of(this.sectionPos)
             );
         }
     }

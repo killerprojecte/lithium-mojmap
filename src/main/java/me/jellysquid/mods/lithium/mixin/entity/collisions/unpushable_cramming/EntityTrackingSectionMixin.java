@@ -5,17 +5,17 @@ import me.jellysquid.mods.lithium.common.entity.pushable.EntityPushablePredicate
 import me.jellysquid.mods.lithium.common.entity.pushable.PushableEntityClassGroup;
 import me.jellysquid.mods.lithium.common.util.collections.ReferenceMaskedList;
 import me.jellysquid.mods.lithium.common.world.ClimbingMobCachingSection;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.boss.dragon.EnderDragonEntity;
-import net.minecraft.registry.tag.BlockTags;
-import net.minecraft.util.collection.TypeFilterableList;
-import net.minecraft.util.function.LazyIterationConsumer;
-import net.minecraft.util.math.Box;
-import net.minecraft.world.World;
-import net.minecraft.world.entity.EntityLike;
-import net.minecraft.world.entity.EntityTrackingSection;
-import net.minecraft.world.entity.EntityTrackingStatus;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.util.AbortableIterationConsumer;
+import net.minecraft.util.ClassInstanceMultiMap;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.entity.EntityAccess;
+import net.minecraft.world.level.entity.EntitySection;
+import net.minecraft.world.level.entity.Visibility;
+import net.minecraft.world.phys.AABB;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -28,13 +28,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-@Mixin(EntityTrackingSection.class)
-public abstract class EntityTrackingSectionMixin<T extends EntityLike> implements ClimbingMobCachingSection {
+@Mixin(EntitySection.class)
+public abstract class EntityTrackingSectionMixin<T extends EntityAccess> implements ClimbingMobCachingSection {
     @Shadow
     @Final
-    private TypeFilterableList<T> collection;
+    private ClassInstanceMultiMap<T> collection;
     @Shadow
-    private EntityTrackingStatus status;
+    private Visibility status;
 
     /**
      * Contains entities that are pushable under some conditions. Entities that are cached to be inside a climbable block
@@ -44,7 +44,7 @@ public abstract class EntityTrackingSectionMixin<T extends EntityLike> implement
     private ReferenceMaskedList<Entity> pushableEntities;
 
     @Override
-    public LazyIterationConsumer.NextIteration collectPushableEntities(World world, Entity except, Box box, EntityPushablePredicate<? super Entity> entityPushablePredicate, ArrayList<Entity> entities) {
+    public AbortableIterationConsumer.Continuation collectPushableEntities(Level world, Entity except, AABB box, EntityPushablePredicate<? super Entity> entityPushablePredicate, ArrayList<Entity> entities) {
         Iterator<?> entityIterator;
         if (this.pushableEntities != null) {
             entityIterator = this.pushableEntities.iterator();
@@ -55,7 +55,7 @@ public abstract class EntityTrackingSectionMixin<T extends EntityLike> implement
         int j = 0;
         while (entityIterator.hasNext()) {
             Entity entity = (Entity) entityIterator.next();
-            if (entity.getBoundingBox().intersects(box) && !entity.isSpectator() && entity != except && !(entity instanceof EnderDragonEntity)) {
+            if (entity.getBoundingBox().intersects(box) && !entity.isSpectator() && entity != except && !(entity instanceof EnderDragon)) {
                 i++;
                 if (entityPushablePredicate.test(entity)) { //This predicate has side effects, might cause BlockCachingEntity to cache block and update its visibility
                     j++;
@@ -67,7 +67,7 @@ public abstract class EntityTrackingSectionMixin<T extends EntityLike> implement
         if (this.pushableEntities == null && i >= 25 && i >= (j * 2)) {
             this.startFilteringPushableEntities();
         }
-        return LazyIterationConsumer.NextIteration.CONTINUE;
+        return AbortableIterationConsumer.Continuation.CONTINUE;
     }
 
     private void startFilteringPushableEntities() {
@@ -117,7 +117,7 @@ public abstract class EntityTrackingSectionMixin<T extends EntityLike> implement
     @Inject(method = "add(Lnet/minecraft/world/entity/EntityLike;)V", at = @At("RETURN"))
     private void onEntityAdded(T entityLike, CallbackInfo ci) {
         if (this.pushableEntities != null) {
-            if (!this.status.shouldTrack()) {
+            if (!this.status.isAccessible()) {
                 this.stopFilteringPushableEntities();
             } else {
                 this.onStartClimbingCachingEntity((Entity) entityLike);
@@ -133,7 +133,7 @@ public abstract class EntityTrackingSectionMixin<T extends EntityLike> implement
     @Inject(method = "remove(Lnet/minecraft/world/entity/EntityLike;)Z", at = @At("RETURN"))
     private void onEntityRemoved(T entityLike, CallbackInfoReturnable<Boolean> cir) {
         if (this.pushableEntities != null) {
-            if (!this.status.shouldTrack()) {
+            if (!this.status.isAccessible()) {
                 this.stopFilteringPushableEntities();
             } else {
                 this.pushableEntities.remove((Entity) entityLike);
@@ -150,6 +150,6 @@ public abstract class EntityTrackingSectionMixin<T extends EntityLike> implement
      * @return whether the entity should be treated as pushable
      */
     private static boolean entityPushableHeuristic(BlockState cachedFeetBlockState) {
-        return cachedFeetBlockState == null || !cachedFeetBlockState.isIn(BlockTags.CLIMBABLE);
+        return cachedFeetBlockState == null || !cachedFeetBlockState.is(BlockTags.CLIMBABLE);
     }
 }

@@ -1,7 +1,6 @@
 package me.jellysquid.mods.lithium.mixin.collections.entity_by_type;
 
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
-import net.minecraft.util.collection.TypeFilterableList;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
@@ -12,8 +11,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 import java.util.Map;
+import net.minecraft.util.ClassInstanceMultiMap;
 
-@Mixin(TypeFilterableList.class)
+@Mixin(ClassInstanceMultiMap.class)
 public class TypeFilterableListMixin {
 
     @Mutable

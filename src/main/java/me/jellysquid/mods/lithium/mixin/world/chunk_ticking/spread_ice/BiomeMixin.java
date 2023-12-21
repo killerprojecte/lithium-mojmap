@@ -1,13 +1,13 @@
 package me.jellysquid.mods.lithium.mixin.world.chunk_ticking.spread_ice;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.fluid.FluidState;
-import net.minecraft.fluid.Fluids;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.WorldView;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -22,7 +22,7 @@ public class BiomeMixin {
                     target = "Lnet/minecraft/world/WorldView;getFluidState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/fluid/FluidState;"
             )
     )
-    private FluidState getNull(WorldView instance, BlockPos blockPos) {
+    private FluidState getNull(LevelReader instance, BlockPos blockPos) {
         return null;
     }
 
@@ -45,6 +45,6 @@ public class BiomeMixin {
             )
     )
     private Block fluidCheckAndGetBlock(BlockState blockState) {
-        return blockState.getFluidState().getFluid() == Fluids.WATER ? blockState.getBlock() : null;
+        return blockState.getFluidState().getType() == Fluids.WATER ? blockState.getBlock() : null;
     }
 }

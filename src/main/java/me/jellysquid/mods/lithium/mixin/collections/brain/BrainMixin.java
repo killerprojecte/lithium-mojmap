@@ -3,7 +3,6 @@ package me.jellysquid.mods.lithium.mixin.collections.brain;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
-import net.minecraft.entity.ai.brain.Brain;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
@@ -15,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Supplier;
+import net.minecraft.world.entity.ai.Brain;
 
 @Mixin(Brain.class)
 public class BrainMixin {

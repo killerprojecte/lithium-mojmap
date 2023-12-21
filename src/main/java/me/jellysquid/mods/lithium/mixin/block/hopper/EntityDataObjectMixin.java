@@ -1,9 +1,9 @@
 package me.jellysquid.mods.lithium.mixin.block.hopper;
 
-import net.minecraft.command.EntityDataObject;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.commands.data.EntityDataAccessor;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.item.ItemEntity;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Fixes hoppers not noticing that the item type of item entities changed after running the data command.
  */
-@Mixin(EntityDataObject.class)
+@Mixin(EntityDataAccessor.class)
 public class EntityDataObjectMixin {
     @Shadow
     @Final
@@ -28,10 +28,10 @@ public class EntityDataObjectMixin {
                     shift = At.Shift.AFTER
             )
     )
-    private void updateEntityTrackerEngine(NbtCompound nbt, CallbackInfo ci) {
+    private void updateEntityTrackerEngine(CompoundTag nbt, CallbackInfo ci) {
         Entity entity = this.entity;
         if (entity instanceof ItemEntity) {
-            ((EntityAccessor) entity).getChangeListener().updateEntityPosition();
+            ((EntityAccessor) entity).getChangeListener().onMove();
         }
     }
 }

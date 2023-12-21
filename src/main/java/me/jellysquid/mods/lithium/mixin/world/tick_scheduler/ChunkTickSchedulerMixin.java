@@ -5,12 +5,12 @@ import it.unimi.dsi.fastutil.longs.Long2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import me.jellysquid.mods.lithium.common.world.scheduler.OrderedTickQueue;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.tick.ChunkTickScheduler;
-import net.minecraft.world.tick.OrderedTick;
-import net.minecraft.world.tick.Tick;
-import net.minecraft.world.tick.TickPriority;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.world.ticks.LevelChunkTicks;
+import net.minecraft.world.ticks.SavedTick;
+import net.minecraft.world.ticks.ScheduledTick;
+import net.minecraft.world.ticks.TickPriority;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
@@ -26,7 +26,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-@Mixin(ChunkTickScheduler.class)
+@Mixin(LevelChunkTicks.class)
 public class ChunkTickSchedulerMixin<T> {
     private static volatile Reference2IntOpenHashMap<Object> TYPE_2_INDEX;
 
@@ -40,20 +40,20 @@ public class ChunkTickSchedulerMixin<T> {
     private final IntOpenHashSet allTicks = new IntOpenHashSet();
 
     @Shadow
-    private @Nullable BiConsumer<ChunkTickScheduler<T>, OrderedTick<T>> tickConsumer;
+    private @Nullable BiConsumer<LevelChunkTicks<T>, ScheduledTick<T>> tickConsumer;
 
     @Mutable
     @Shadow
     @Final
-    private Set<OrderedTick<?>> queuedTicks;
+    private Set<ScheduledTick<?>> queuedTicks;
 
     @Shadow
-    private @Nullable List<Tick<T>> ticks;
+    private @Nullable List<SavedTick<T>> ticks;
 
     @Mutable
     @Shadow
     @Final
-    private Queue<OrderedTick<T>> tickQueue;
+    private Queue<ScheduledTick<T>> tickQueue;
 
     @Inject(
             method = {"<init>()V", "<init>(Ljava/util/List;)V"},
@@ -62,7 +62,7 @@ public class ChunkTickSchedulerMixin<T> {
     private void reinit(CallbackInfo ci) {
         //Remove replaced collections
         if (this.ticks != null) {
-            for (Tick<?> orderedTick : this.ticks) {
+            for (SavedTick<?> orderedTick : this.ticks) {
                 this.allTicks.add(tickToInt(orderedTick.pos(), orderedTick.type()));
             }
         }
@@ -106,7 +106,7 @@ public class ChunkTickSchedulerMixin<T> {
      * @reason use faster collections
      */
     @Overwrite
-    public void scheduleTick(OrderedTick<T> orderedTick) {
+    public void scheduleTick(ScheduledTick<T> orderedTick) {
         int intTick = tickToInt(orderedTick.pos(), orderedTick.type());
         if (this.allTicks.add(intTick)) {
             this.queueTick(orderedTick);
@@ -142,7 +142,7 @@ public class ChunkTickSchedulerMixin<T> {
      */
     @Overwrite
     @Nullable
-    public OrderedTick<T> peekNextTick() {
+    public ScheduledTick<T> peekNextTick() {
         if (this.nextTickQueue == null) {
             return null;
         }
@@ -155,8 +155,8 @@ public class ChunkTickSchedulerMixin<T> {
      */
     @Overwrite
     @Nullable
-    public OrderedTick<T> pollNextTick() {
-        OrderedTick<T> orderedTick = this.nextTickQueue.poll();
+    public ScheduledTick<T> pollNextTick() {
+        ScheduledTick<T> orderedTick = this.nextTickQueue.poll();
         if (orderedTick != null) {
             if (this.nextTickQueue.isEmpty()) {
                 this.updateNextTickQueue(true);
@@ -168,7 +168,7 @@ public class ChunkTickSchedulerMixin<T> {
     }
 
 
-    private void queueTick(OrderedTick<T> orderedTick) {
+    private void queueTick(ScheduledTick<T> orderedTick) {
         OrderedTickQueue<T> tickQueue = this.tickQueuesByTimeAndPriority.computeIfAbsent(getBucketKey(orderedTick.triggerTick(), orderedTick.priority()), key -> new OrderedTickQueue<>());
         if (tickQueue.isEmpty()) {
             this.updateNextTickQueue(false);
@@ -177,7 +177,7 @@ public class ChunkTickSchedulerMixin<T> {
 
         if (this.tickConsumer != null) {
             //noinspection unchecked
-            this.tickConsumer.accept((ChunkTickScheduler<T>) (Object) this, orderedTick);
+            this.tickConsumer.accept((LevelChunkTicks<T>) (Object) this, orderedTick);
         }
     }
 
@@ -195,13 +195,13 @@ public class ChunkTickSchedulerMixin<T> {
      * @reason use faster collections
      */
     @Overwrite
-    public void removeTicksIf(Predicate<OrderedTick<T>> predicate) {
+    public void removeTicksIf(Predicate<ScheduledTick<T>> predicate) {
         for (ObjectIterator<OrderedTickQueue<T>> tickQueueIterator = this.tickQueuesByTimeAndPriority.values().iterator(); tickQueueIterator.hasNext(); ) {
             OrderedTickQueue<T> nextTickQueue = tickQueueIterator.next();
             nextTickQueue.sort();
             boolean removed = false;
             for (int i = 0; i < nextTickQueue.size(); i++) {
-                OrderedTick<T> nextTick = nextTickQueue.getTickAtIndex(i);
+                ScheduledTick<T> nextTick = nextTickQueue.getTickAtIndex(i);
                 if (predicate.test(nextTick)) {
                     nextTickQueue.setTickAtIndex(i, null);
                     this.allTicks.remove(tickToInt(nextTick.pos(), nextTick.type()));
@@ -223,7 +223,7 @@ public class ChunkTickSchedulerMixin<T> {
      * @reason use faster collections
      */
     @Overwrite
-    public Stream<OrderedTick<T>> getQueueAsStream() {
+    public Stream<ScheduledTick<T>> getQueueAsStream() {
         return this.tickQueuesByTimeAndPriority.values().stream().flatMap(Collection::stream);
     }
 
@@ -242,16 +242,16 @@ public class ChunkTickSchedulerMixin<T> {
      * @reason not use unused field
      */
     @Overwrite
-    public NbtList toNbt(long l, Function<T, String> function) {
-        NbtList nbtList = new NbtList();
+    public ListTag toNbt(long l, Function<T, String> function) {
+        ListTag nbtList = new ListTag();
         if (this.ticks != null) {
-            for (Tick<T> tick : this.ticks) {
-                nbtList.add(tick.toNbt(function));
+            for (SavedTick<T> tick : this.ticks) {
+                nbtList.add(tick.save(function));
             }
         }
         for (OrderedTickQueue<T> nextTickQueue : this.tickQueuesByTimeAndPriority.values()) {
-            for (OrderedTick<T> orderedTick : nextTickQueue) {
-                nbtList.add(Tick.orderedTickToNbt(orderedTick, function, l));
+            for (ScheduledTick<T> orderedTick : nextTickQueue) {
+                nbtList.add(SavedTick.saveTick(orderedTick, function, l));
             }
         }
         return nbtList;
@@ -266,8 +266,8 @@ public class ChunkTickSchedulerMixin<T> {
     public void disable(long time) {
         if (this.ticks != null) {
             int i = -this.ticks.size();
-            for (Tick<T> tick : this.ticks) {
-                this.queueTick(tick.createOrderedTick(time, i++));
+            for (SavedTick<T> tick : this.ticks) {
+                this.queueTick(tick.unpack(time, i++));
             }
         }
         this.ticks = null;

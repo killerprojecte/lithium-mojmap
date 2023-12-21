@@ -2,15 +2,14 @@ package me.jellysquid.mods.lithium.common.entity.nearby_tracker;
 
 import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
 import me.jellysquid.mods.lithium.common.util.tuples.Range6Int;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.TargetPredicate;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.util.math.Vec3i;
-
+import net.minecraft.core.SectionPos;
+import net.minecraft.core.Vec3i;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.targeting.TargetingConditions;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.AABB;
 import java.util.List;
 
 /**
@@ -29,12 +28,12 @@ public class NearbyEntityTracker<T extends LivingEntity> implements NearbyEntity
         this.clazz = clazz;
         this.entity = entity;
         this.chunkBoxRadius = new Range6Int(
-                1 + ChunkSectionPos.getSectionCoord(boxRadius.getX()),
-                1 + ChunkSectionPos.getSectionCoord(boxRadius.getY()),
-                1 + ChunkSectionPos.getSectionCoord(boxRadius.getZ()),
-                1 + ChunkSectionPos.getSectionCoord(boxRadius.getX()),
-                1 + ChunkSectionPos.getSectionCoord(boxRadius.getY()),
-                1 + ChunkSectionPos.getSectionCoord(boxRadius.getZ())
+                1 + SectionPos.blockToSectionCoord(boxRadius.getX()),
+                1 + SectionPos.blockToSectionCoord(boxRadius.getY()),
+                1 + SectionPos.blockToSectionCoord(boxRadius.getZ()),
+                1 + SectionPos.blockToSectionCoord(boxRadius.getX()),
+                1 + SectionPos.blockToSectionCoord(boxRadius.getY()),
+                1 + SectionPos.blockToSectionCoord(boxRadius.getZ())
         );
     }
 
@@ -79,7 +78,7 @@ public class NearbyEntityTracker<T extends LivingEntity> implements NearbyEntity
      * @param z
      * @return the closest Entity that meets all requirements (distance, box intersection, predicate, type T)
      */
-    public T getClosestEntity(Box box, TargetPredicate targetPredicate, double x, double y, double z) {
+    public T getClosestEntity(AABB box, TargetingConditions targetPredicate, double x, double y, double z) {
         T nearest = null;
         double nearestDistance = Double.POSITIVE_INFINITY;
 
@@ -87,7 +86,7 @@ public class NearbyEntityTracker<T extends LivingEntity> implements NearbyEntity
             double distance;
             if (
                     (box == null || box.intersects(entity.getBoundingBox())) &&
-                            (distance = entity.squaredDistanceTo(x, y, z)) <= nearestDistance &&
+                            (distance = entity.distanceToSqr(x, y, z)) <= nearestDistance &&
                             targetPredicate.test(this.getEntity(), entity)
             ) {
                 if (distance == nearestDistance) {
@@ -109,16 +108,16 @@ public class NearbyEntityTracker<T extends LivingEntity> implements NearbyEntity
      * @return the Entity that is first in vanilla
      */
     private T getFirst(T entity1, T entity2) {
-        if (this.getEntityClass() == PlayerEntity.class) {
+        if (this.getEntityClass() == Player.class) {
             //Get first in player list
-            List<? extends PlayerEntity> players = this.getEntity().getEntityWorld().getPlayers();
-            return players.indexOf((PlayerEntity)entity1) < players.indexOf((PlayerEntity)entity2) ? entity1 : entity2;
+            List<? extends Player> players = this.getEntity().getCommandSenderWorld().players();
+            return players.indexOf((Player)entity1) < players.indexOf((Player)entity2) ? entity1 : entity2;
         } else {
             //Get first sorted by chunk section pos as long, then sorted by first added to the chunk section
             //First added to this tracker and first added to the chunk section is equivalent here, because
             //this tracker always tracks complete sections and the entities are added in order
-            long pos1 = ChunkSectionPos.toLong(entity1.getBlockPos());
-            long pos2 = ChunkSectionPos.toLong(entity2.getBlockPos());
+            long pos1 = SectionPos.asLong(entity1.blockPosition());
+            long pos2 = SectionPos.asLong(entity2.blockPosition());
             if (pos1 < pos2) {
                 return entity1;
             } else if (pos2 < pos1) {
@@ -136,7 +135,7 @@ public class NearbyEntityTracker<T extends LivingEntity> implements NearbyEntity
 
     @Override
     public String toString() {
-        return super.toString() + " for entity class: " + this.clazz.getName() + ", around entity: " + this.getEntity().toString() + " with NBT: " + this.getEntity().writeNbt(new NbtCompound());
+        return super.toString() + " for entity class: " + this.clazz.getName() + ", around entity: " + this.getEntity().toString() + " with NBT: " + this.getEntity().saveWithoutId(new CompoundTag());
     }
 
     LivingEntity getEntity() {

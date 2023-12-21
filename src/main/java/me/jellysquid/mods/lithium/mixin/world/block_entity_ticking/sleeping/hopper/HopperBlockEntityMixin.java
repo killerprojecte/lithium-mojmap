@@ -2,14 +2,14 @@ package me.jellysquid.mods.lithium.mixin.world.block_entity_ticking.sleeping.hop
 
 import me.jellysquid.mods.lithium.common.block.entity.SleepingBlockEntity;
 import me.jellysquid.mods.lithium.mixin.world.block_entity_ticking.sleeping.WrappedBlockEntityTickInvokerAccessor;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.HopperBlock;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.block.entity.HopperBlockEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.BlockEntityTickInvoker;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.HopperBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.entity.HopperBlockEntity;
+import net.minecraft.world.level.block.entity.TickingBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -29,7 +29,7 @@ public class HopperBlockEntityMixin extends BlockEntity implements SleepingBlock
     private native boolean needsCooldown();
 
     private WrappedBlockEntityTickInvokerAccessor tickWrapper = null;
-    private BlockEntityTickInvoker sleepingTicker = null;
+    private TickingBlockEntity sleepingTicker = null;
 
     @Override
     public WrappedBlockEntityTickInvokerAccessor getTickWrapper() {
@@ -43,12 +43,12 @@ public class HopperBlockEntityMixin extends BlockEntity implements SleepingBlock
     }
 
     @Override
-    public BlockEntityTickInvoker getSleepingTicker() {
+    public TickingBlockEntity getSleepingTicker() {
         return sleepingTicker;
     }
 
     @Override
-    public void setSleepingTicker(BlockEntityTickInvoker sleepingTicker) {
+    public void setSleepingTicker(TickingBlockEntity sleepingTicker) {
         this.sleepingTicker = sleepingTicker;
     }
 
@@ -60,10 +60,10 @@ public class HopperBlockEntityMixin extends BlockEntity implements SleepingBlock
             method = "insertAndExtract",
             at = @At(value = "RETURN", ordinal = 2)
     )
-    private static void sleepIfNoCooldownAndLocked(World world, BlockPos pos, BlockState state, HopperBlockEntity blockEntity, BooleanSupplier booleanSupplier, CallbackInfoReturnable<Boolean> cir) {
+    private static void sleepIfNoCooldownAndLocked(Level world, BlockPos pos, BlockState state, HopperBlockEntity blockEntity, BooleanSupplier booleanSupplier, CallbackInfoReturnable<Boolean> cir) {
         if (!((HopperBlockEntityMixin) (Object) blockEntity).needsCooldown() &&
                 !((HopperBlockEntityMixin) (Object) blockEntity).isSleeping() &&
-                !state.get(HopperBlock.ENABLED)) {
+                !state.getValue(HopperBlock.ENABLED)) {
             ((HopperBlockEntityMixin) (Object) blockEntity).startSleeping();
         }
     }

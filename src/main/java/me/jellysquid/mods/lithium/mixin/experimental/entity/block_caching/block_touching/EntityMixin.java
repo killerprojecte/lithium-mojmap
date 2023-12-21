@@ -4,11 +4,11 @@ import me.jellysquid.mods.lithium.common.block.BlockStateFlagHolder;
 import me.jellysquid.mods.lithium.common.block.BlockStateFlags;
 import me.jellysquid.mods.lithium.common.entity.block_tracking.BlockCache;
 import me.jellysquid.mods.lithium.common.entity.block_tracking.BlockCacheProvider;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -23,7 +23,7 @@ public abstract class EntityMixin implements BlockCacheProvider {
     )
     private void cancelIfSkippable(CallbackInfo ci) {
         //noinspection ConstantConditions
-        if (!((Object) this instanceof ServerPlayerEntity)) {
+        if (!((Object) this instanceof ServerPlayer)) {
             BlockCache bc = this.getUpdatedBlockCache((Entity)(Object)this);
             if (bc.canSkipBlockTouching()) {
                 ci.cancel();
@@ -46,7 +46,7 @@ public abstract class EntityMixin implements BlockCacheProvider {
             method = "checkBlockCollision()V", locals = LocalCapture.CAPTURE_FAILHARD,
             at = @At(value = "INVOKE", target = "Lnet/minecraft/block/BlockState;onEntityCollision(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;)V")
     )
-    private void checkTouchableBlock(CallbackInfo ci, Box box, BlockPos blockPos, BlockPos blockPos2, BlockPos.Mutable mutable, int i, int j, int k, BlockState blockState) {
+    private void checkTouchableBlock(CallbackInfo ci, AABB box, BlockPos blockPos, BlockPos blockPos2, BlockPos.MutableBlockPos mutable, int i, int j, int k, BlockState blockState) {
         BlockCache bc = this.getBlockCache();
         if (bc.canSkipBlockTouching() &&
                 0 != (((BlockStateFlagHolder)blockState).getAllFlags() & 1 << BlockStateFlags.ENTITY_TOUCHABLE.getIndex())

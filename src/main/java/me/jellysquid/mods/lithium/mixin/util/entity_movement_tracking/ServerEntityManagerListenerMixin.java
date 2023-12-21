@@ -3,12 +3,12 @@ package me.jellysquid.mods.lithium.mixin.util.entity_movement_tracking;
 import me.jellysquid.mods.lithium.common.entity.movement_tracker.EntityMovementTrackerSection;
 import me.jellysquid.mods.lithium.common.entity.movement_tracker.MovementTrackerHelper;
 import me.jellysquid.mods.lithium.common.entity.movement_tracker.ToggleableMovementTracker;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.world.ServerEntityManager;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.entity.EntityLike;
-import net.minecraft.world.entity.EntityTrackingSection;
-import net.minecraft.world.entity.EntityTrackingStatus;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.entity.EntityAccess;
+import net.minecraft.world.level.entity.EntitySection;
+import net.minecraft.world.level.entity.PersistentEntitySectionManager;
+import net.minecraft.world.level.entity.Visibility;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -18,9 +18,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 @Mixin(targets = "net/minecraft/server/world/ServerEntityManager$Listener")
-public class ServerEntityManagerListenerMixin<T extends EntityLike> implements ToggleableMovementTracker {
+public class ServerEntityManagerListenerMixin<T extends EntityAccess> implements ToggleableMovementTracker {
     @Shadow
-    private EntityTrackingSection<T> section;
+    private EntitySection<T> section;
     @Shadow
     @Final
     private T entity;
@@ -28,7 +28,7 @@ public class ServerEntityManagerListenerMixin<T extends EntityLike> implements T
     private int notificationMask;
 
     @Inject(method = "<init>", at = @At("RETURN"))
-    private void init(ServerEntityManager<?> outer, T entityLike, long l, EntityTrackingSection<T> entityTrackingSection, CallbackInfo ci) {
+    private void init(PersistentEntitySectionManager<?> outer, T entityLike, long l, EntitySection<T> entityTrackingSection, CallbackInfo ci) {
         this.notificationMask = MovementTrackerHelper.getNotificationMask(this.entity.getClass());
 
         //Fix #284 Summoned inventory minecarts do not immediately notify hoppers of their presence when created using summon command
@@ -49,7 +49,7 @@ public class ServerEntityManagerListenerMixin<T extends EntityLike> implements T
             ),
             locals = LocalCapture.CAPTURE_FAILHARD
     )
-    private void onAddEntity(CallbackInfo ci, BlockPos blockPos, long newPos, EntityTrackingStatus entityTrackingStatus, EntityTrackingSection<T> entityTrackingSection) {
+    private void onAddEntity(CallbackInfo ci, BlockPos blockPos, long newPos, Visibility entityTrackingStatus, EntitySection<T> entityTrackingSection) {
         this.notifyMovementListeners();
     }
 
@@ -65,7 +65,7 @@ public class ServerEntityManagerListenerMixin<T extends EntityLike> implements T
 
     private void notifyMovementListeners() {
         if (this.notificationMask != 0) {
-            ((EntityMovementTrackerSection) this.section).trackEntityMovement(this.notificationMask, ((Entity) this.entity).getEntityWorld().getTime());
+            ((EntityMovementTrackerSection) this.section).trackEntityMovement(this.notificationMask, ((Entity) this.entity).getCommandSenderWorld().getGameTime());
         }
     }
 

@@ -2,7 +2,6 @@ package me.jellysquid.mods.lithium.mixin.alloc.deep_passengers;
 
 
 import com.google.common.collect.ImmutableList;
-import net.minecraft.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
@@ -10,6 +9,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.stream.Stream;
+import net.minecraft.world.entity.Entity;
 
 @Mixin(Entity.class)
 public abstract class EntityMixin {

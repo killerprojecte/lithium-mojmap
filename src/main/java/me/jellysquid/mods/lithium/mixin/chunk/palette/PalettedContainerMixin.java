@@ -1,26 +1,26 @@
 package me.jellysquid.mods.lithium.mixin.chunk.palette;
 
 import me.jellysquid.mods.lithium.common.world.chunk.LithiumHashPalette;
-import net.minecraft.util.collection.IndexedIterable;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.chunk.Palette;
-import net.minecraft.world.chunk.PalettedContainer;
+import net.minecraft.core.IdMap;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.chunk.Palette;
+import net.minecraft.world.level.chunk.PalettedContainer;
 import org.spongepowered.asm.mixin.*;
 
-import static net.minecraft.world.chunk.PalettedContainer.PaletteProvider.ARRAY;
-import static net.minecraft.world.chunk.PalettedContainer.PaletteProvider.SINGULAR;
+import static net.minecraft.world.level.chunk.PalettedContainer.Strategy.LINEAR_PALETTE_FACTORY;
+import static net.minecraft.world.level.chunk.PalettedContainer.Strategy.SINGLE_VALUE_PALETTE_FACTORY;
 
-@Mixin(PalettedContainer.PaletteProvider.class)
+@Mixin(PalettedContainer.Strategy.class)
 public abstract class PalettedContainerMixin {
     @Mutable
     @Shadow
     @Final
-    public static PalettedContainer.PaletteProvider BLOCK_STATE;
+    public static PalettedContainer.Strategy BLOCK_STATE;
 
     @Unique
-    private static final PalettedContainer.DataProvider<?>[] BLOCKSTATE_DATA_PROVIDERS;
+    private static final PalettedContainer.Configuration<?>[] BLOCKSTATE_DATA_PROVIDERS;
     @Unique
-    private static final PalettedContainer.DataProvider<?>[] BIOME_DATA_PROVIDERS;
+    private static final PalettedContainer.Configuration<?>[] BIOME_DATA_PROVIDERS;
 
 
     @Unique
@@ -28,7 +28,7 @@ public abstract class PalettedContainerMixin {
     @Mutable
     @Shadow
     @Final
-    public static PalettedContainer.PaletteProvider BIOME;
+    public static PalettedContainer.Strategy BIOME;
     @Shadow
     @Final
     static Palette.Factory ID_LIST;
@@ -41,48 +41,48 @@ public abstract class PalettedContainerMixin {
     static {
         Palette.Factory idListFactory = ID_LIST;
 
-        PalettedContainer.DataProvider<?> arrayDataProvider4bit = new PalettedContainer.DataProvider<>(ARRAY, 4);
-        PalettedContainer.DataProvider<?> hashDataProvider4bit = new PalettedContainer.DataProvider<>(HASH, 4);
-        BLOCKSTATE_DATA_PROVIDERS = new PalettedContainer.DataProvider<?>[]{
-                new PalettedContainer.DataProvider<>(SINGULAR, 0),
+        PalettedContainer.Configuration<?> arrayDataProvider4bit = new PalettedContainer.Configuration<>(LINEAR_PALETTE_FACTORY, 4);
+        PalettedContainer.Configuration<?> hashDataProvider4bit = new PalettedContainer.Configuration<>(HASH, 4);
+        BLOCKSTATE_DATA_PROVIDERS = new PalettedContainer.Configuration<?>[]{
+                new PalettedContainer.Configuration<>(SINGLE_VALUE_PALETTE_FACTORY, 0),
                 // Bits 1-4 must all pass 4 bits as parameter, otherwise chunk sections will corrupt.
                 arrayDataProvider4bit,
                 arrayDataProvider4bit,
                 hashDataProvider4bit,
                 hashDataProvider4bit,
-                new PalettedContainer.DataProvider<>(HASH, 5),
-                new PalettedContainer.DataProvider<>(HASH, 6),
-                new PalettedContainer.DataProvider<>(HASH, 7),
-                new PalettedContainer.DataProvider<>(HASH, 8)
+                new PalettedContainer.Configuration<>(HASH, 5),
+                new PalettedContainer.Configuration<>(HASH, 6),
+                new PalettedContainer.Configuration<>(HASH, 7),
+                new PalettedContainer.Configuration<>(HASH, 8)
         };
 
-        BLOCK_STATE = new PalettedContainer.PaletteProvider(4) {
+        BLOCK_STATE = new PalettedContainer.Strategy(4) {
             @Override
-            public <A> PalettedContainer.DataProvider<A> createDataProvider(IndexedIterable<A> idList, int bits) {
+            public <A> PalettedContainer.Configuration<A> getConfiguration(IdMap<A> idList, int bits) {
                 if (bits >= 0 && bits < BLOCKSTATE_DATA_PROVIDERS.length) {
                     //noinspection unchecked
-                    return (PalettedContainer.DataProvider<A>) BLOCKSTATE_DATA_PROVIDERS[bits];
+                    return (PalettedContainer.Configuration<A>) BLOCKSTATE_DATA_PROVIDERS[bits];
                 }
-                return new PalettedContainer.DataProvider<>(idListFactory, MathHelper.ceilLog2(idList.size()));
+                return new PalettedContainer.Configuration<>(idListFactory, Mth.ceillog2(idList.size()));
             }
         };
 
-        BIOME_DATA_PROVIDERS = new PalettedContainer.DataProvider<?>[]{
-                new PalettedContainer.DataProvider<>(SINGULAR, 0),
-                new PalettedContainer.DataProvider<>(ARRAY, 1),
-                new PalettedContainer.DataProvider<>(ARRAY, 2),
-                new PalettedContainer.DataProvider<>(HASH, 3)
+        BIOME_DATA_PROVIDERS = new PalettedContainer.Configuration<?>[]{
+                new PalettedContainer.Configuration<>(SINGLE_VALUE_PALETTE_FACTORY, 0),
+                new PalettedContainer.Configuration<>(LINEAR_PALETTE_FACTORY, 1),
+                new PalettedContainer.Configuration<>(LINEAR_PALETTE_FACTORY, 2),
+                new PalettedContainer.Configuration<>(HASH, 3)
         };
 
 
-        BIOME = new PalettedContainer.PaletteProvider(2) {
+        BIOME = new PalettedContainer.Strategy(2) {
             @Override
-            public <A> PalettedContainer.DataProvider<A> createDataProvider(IndexedIterable<A> idList, int bits) {
+            public <A> PalettedContainer.Configuration<A> getConfiguration(IdMap<A> idList, int bits) {
                 if (bits >= 0 && bits < BIOME_DATA_PROVIDERS.length) {
                     //noinspection unchecked
-                    return (PalettedContainer.DataProvider<A>) BIOME_DATA_PROVIDERS[bits];
+                    return (PalettedContainer.Configuration<A>) BIOME_DATA_PROVIDERS[bits];
                 }
-                return new PalettedContainer.DataProvider<>(idListFactory, MathHelper.ceilLog2(idList.size()));
+                return new PalettedContainer.Configuration<>(idListFactory, Mth.ceillog2(idList.size()));
             }
         };
     }
