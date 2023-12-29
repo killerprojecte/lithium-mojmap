@@ -8,6 +8,6 @@ import net.minecraft.core.NonNullList;
 
 @Mixin(NonNullList.class)
 public interface DefaultedListAccessor<T> {
-    @Accessor("delegate")
+    @Accessor("list")
     List<T> getDelegate();
 }

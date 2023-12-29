@@ -64,7 +64,7 @@ public class RedstoneWireBlockMixin extends Block {
     }
     
     @Inject(
-            method = "getReceivedRedstonePower",
+            method = "calculateTargetStrength",
             cancellable = true,
             at = @At(
                     value = "HEAD"

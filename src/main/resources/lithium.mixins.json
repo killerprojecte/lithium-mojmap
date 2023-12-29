@@ -222,9 +222,5 @@
     "world.inline_height.WorldMixin",
     "world.temperature_cache.BiomeMixin",
     "world.tick_scheduler.ChunkTickSchedulerMixin"
-  ],
-  "client": [
-    "chunk.entity_class_groups.ClientEntityManagerAccessor",
-    "chunk.entity_class_groups.ClientWorldMixin"
   ]
 }

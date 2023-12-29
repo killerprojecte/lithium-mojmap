@@ -8,9 +8,9 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(CompoundContainer.class)
 public interface DoubleInventoryAccessor {
 
-    @Accessor("first")
+    @Accessor("container1")
     Container getFirst();
 
-    @Accessor("second")
+    @Accessor("container2")
     Container getSecond();
 }

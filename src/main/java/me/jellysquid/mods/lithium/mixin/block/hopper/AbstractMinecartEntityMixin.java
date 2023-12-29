@@ -26,7 +26,7 @@ public abstract class AbstractMinecartEntityMixin extends Entity {
     private int beforeMoveOnRailNotificationMask;
 
     @Inject(
-            method = "moveOnRail",
+            method = "moveAlongTrack",
             at = @At("HEAD")
     )
     private void avoidNotifyingMovementListeners(BlockPos pos, BlockState state, CallbackInfo ci) {
@@ -40,7 +40,7 @@ public abstract class AbstractMinecartEntityMixin extends Entity {
     }
 
     @Inject(
-            method = "moveOnRail",
+            method = "moveAlongTrack",
             at = @At("RETURN")
     )
     private void notifyMovementListeners(BlockPos pos, BlockState state, CallbackInfo ci) {

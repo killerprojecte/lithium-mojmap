@@ -1,13 +1,13 @@
 package me.jellysquid.mods.lithium.common;
 
 import me.jellysquid.mods.lithium.common.config.LithiumConfig;
-import net.fabricmc.api.ModInitializer;
+import org.bukkit.plugin.java.JavaPlugin;
 
-public class LithiumMod implements ModInitializer {
+public class LithiumMod extends JavaPlugin {
     public static LithiumConfig CONFIG;
 
     @Override
-    public void onInitialize() {
+    public void onEnable() {
         if (CONFIG == null) {
             throw new IllegalStateException("The mixin plugin did not initialize the config! Did it not load?");
         }

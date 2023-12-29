@@ -1,6 +1,5 @@
 package me.jellysquid.mods.lithium.mixin.block.hopper.worldedit_compat;
 
-import me.jellysquid.mods.lithium.common.compat.worldedit.WorldEditCompat;
 import me.jellysquid.mods.lithium.common.hopper.UpdateReceiver;
 import me.jellysquid.mods.lithium.common.util.DirectionConstants;
 import me.jellysquid.mods.lithium.common.world.WorldHelper;
@@ -22,16 +21,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class WorldChunkMixin {
 
     @Shadow
-    public abstract Level getWorld();
+    public abstract Level getLevel();
 
     @Inject(
             method = "setBlockState",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/block/BlockState;onBlockAdded(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Z)V", shift = At.Shift.BEFORE)
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/state/BlockState;onPlace(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Z)V", shift = At.Shift.BEFORE)
     )
     private void updateHoppersIfWorldEditPresent(BlockPos pos, BlockState state, boolean moved, CallbackInfoReturnable<BlockState> cir) {
-        if (WorldEditCompat.WORLD_EDIT_PRESENT && (state.getBlock() instanceof WorldlyContainerHolder || state.hasBlockEntity())) {
-            updateHopperCachesOnNewInventoryAdded((LevelChunk) (Object) this, pos, this.getWorld());
-        }
+
     }
 
     private static void updateHopperCachesOnNewInventoryAdded(LevelChunk worldChunk, BlockPos pos, Level world) {

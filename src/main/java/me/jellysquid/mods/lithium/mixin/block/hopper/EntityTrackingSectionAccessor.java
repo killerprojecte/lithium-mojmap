@@ -7,6 +7,6 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(EntitySection.class)
 public interface EntityTrackingSectionAccessor<T> {
-    @Accessor("collection")
+    @Accessor("storage")
     ClassInstanceMultiMap<T> getCollection();
 }

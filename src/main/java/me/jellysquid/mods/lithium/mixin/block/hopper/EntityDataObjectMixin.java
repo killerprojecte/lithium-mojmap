@@ -21,10 +21,10 @@ public class EntityDataObjectMixin {
     private Entity entity;
 
     @Inject(
-            method = "setNbt(Lnet/minecraft/nbt/NbtCompound;)V",
+            method = "setData",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/entity/Entity;setUuid(Ljava/util/UUID;)V",
+                    target = "Lnet/minecraft/world/entity/Entity;setUUID(Ljava/util/UUID;)V",
                     shift = At.Shift.AFTER
             )
     )

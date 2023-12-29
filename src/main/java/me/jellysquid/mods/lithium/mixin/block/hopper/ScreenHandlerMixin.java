@@ -10,8 +10,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(net.minecraft.world.inventory.AbstractContainerMenu.class)
 public abstract class ScreenHandlerMixin {
-    @Inject(method = "calculateComparatorOutput(Lnet/minecraft/inventory/Inventory;)I",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/inventory/Inventory;size()I", shift = At.Shift.BEFORE, ordinal = 0), cancellable = true)
+    @Inject(method = "getRedstoneSignalFromContainer",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/Container;getContainerSize()I", shift = At.Shift.BEFORE, ordinal = 0), cancellable = true)
     private static void getFastOutputStrength(Container inventory, CallbackInfoReturnable<Integer> cir) {
         if (inventory instanceof LithiumInventory optimizedInventory) {
             cir.setReturnValue(InventoryHelper.getLithiumStackList(optimizedInventory).getSignalStrength(inventory));

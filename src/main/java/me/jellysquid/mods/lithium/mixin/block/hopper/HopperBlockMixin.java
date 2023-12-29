@@ -2,7 +2,6 @@ package me.jellysquid.mods.lithium.mixin.block.hopper;
 
 import me.jellysquid.mods.lithium.common.hopper.UpdateReceiver;
 import me.jellysquid.mods.lithium.common.world.blockentity.BlockEntityGetter;
-import net.minecraft.block.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.WorldlyContainerHolder;
@@ -43,7 +42,7 @@ public abstract class HopperBlockMixin extends BaseEntityBlock {
         }
     }
 
-    @Inject(method = "neighborUpdate(Lnet/minecraft/block/BlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/Block;Lnet/minecraft/util/math/BlockPos;Z)V", at = @At(value = "HEAD"))
+    @Inject(method = "neighborChanged", at = @At(value = "HEAD"))
     private void updateBlockEntity(BlockState myBlockState, Level world, BlockPos myPos, Block block, BlockPos posFrom, boolean moved, CallbackInfo ci) {
         //invalidate cache when the block is replaced
         if (!world.isClientSide()) {
@@ -63,10 +62,10 @@ public abstract class HopperBlockMixin extends BaseEntityBlock {
     }
 
     @Inject(
-            method = "onBlockAdded(Lnet/minecraft/block/BlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Z)V",
+                method = "onPlace",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/block/HopperBlock;updateEnabled(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)V",
+                    target = "Lnet/minecraft/world/level/block/HopperBlock;checkPoweredState(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V",
                     shift = At.Shift.AFTER
             )
     )
